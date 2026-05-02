@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { colors, spacing, borderRadius, fontSizes, fontWeights } from '../theme';
+import { useStore } from '../hooks/useStore';
 
 const MENU_ITEMS = [
   { id: '1', label: 'My Profile', icon: '👤', screen: 'MyProfile' },
@@ -14,6 +15,9 @@ const MENU_ITEMS = [
 ];
 
 export function ProfileHubScreen({ navigation }: any) {
+  const { userProfile, userName } = useStore();
+  const displayName = `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userName || userProfile.username;
+
   const handleMenuPress = (item: typeof MENU_ITEMS[0]) => {
     if (item.screen === null) return;
     navigation.navigate(item.screen);
@@ -29,7 +33,7 @@ export function ProfileHubScreen({ navigation }: any) {
           <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>👤</Text>
           </View>
-          <Text style={styles.profileName}>Ronald Richards</Text>
+          <Text style={styles.profileName}>{displayName}</Text>
         </View>
         <View style={styles.menuSection}>
           {MENU_ITEMS.map((item, index) => (

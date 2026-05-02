@@ -8,33 +8,35 @@ interface Props {
 }
 
 export function SettingsScreen({ navigation }: Props) {
-  const { userName, logout } = useStore();
+  const { userName, userProfile, logout } = useStore();
+  const displayName = `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userName || userProfile.username;
+  const profileInitial = displayName.trim()[0]?.toUpperCase() || 'U';
 
   const sections = [
     {
       title: 'Account',
       items: [
-        { icon: '👤', label: 'Edit Profile', action: 'navigate' },
-        { icon: '🏦', label: 'Linked Accounts', action: 'navigate' },
-        { icon: '💳', label: 'Payment Methods', action: 'navigate' },
-        { icon: '⭐', label: 'Upgrade to Premium', action: 'navigate', accent: true },
+        { icon: 'User', label: 'Edit Profile', action: 'navigate', screen: 'EditProfile' },
+        { icon: 'Bank', label: 'Linked Accounts', action: 'navigate' },
+        { icon: 'Card', label: 'Payment Methods', action: 'navigate' },
+        { icon: 'Star', label: 'Upgrade to Premium', action: 'navigate', accent: true },
       ],
     },
     {
       title: 'Preferences',
       items: [
-        { icon: '🔔', label: 'Notifications', action: 'toggle', value: true },
-        { icon: '🌙', label: 'Dark Mode', action: 'toggle', value: false },
-        { icon: '📊', label: 'Weekly Report', action: 'toggle', value: true },
+        { icon: 'Bell', label: 'Notifications', action: 'toggle', value: true },
+        { icon: 'Moon', label: 'Dark Mode', action: 'toggle', value: false },
+        { icon: 'Report', label: 'Weekly Report', action: 'toggle', value: true },
       ],
     },
     {
       title: 'Support',
       items: [
-        { icon: '❓', label: 'Help Center', action: 'navigate' },
-        { icon: '💬', label: 'Contact Support', action: 'navigate' },
-        { icon: '📋', label: 'Terms of Service', action: 'navigate' },
-        { icon: '🔒', label: 'Privacy Policy', action: 'navigate' },
+        { icon: 'Help', label: 'Help Center', action: 'navigate' },
+        { icon: 'Chat', label: 'Contact Support', action: 'navigate' },
+        { icon: 'Terms', label: 'Terms of Service', action: 'navigate' },
+        { icon: 'Lock', label: 'Privacy Policy', action: 'navigate' },
       ],
     },
   ];
@@ -42,26 +44,23 @@ export function SettingsScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Settings</Text>
         </View>
 
-        {/* Profile card */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{userName[0]}</Text>
+            <Text style={styles.avatarText}>{profileInitial}</Text>
           </View>
           <View>
-            <Text style={styles.profileName}>{userName}</Text>
-            <Text style={styles.profileEmail}>founder@fractionalbillpay.com</Text>
+            <Text style={styles.profileName}>{displayName}</Text>
+            <Text style={styles.profileEmail}>{userProfile.email}</Text>
           </View>
           <View style={styles.freeBadge}>
             <Text style={styles.freeBadgeText}>Free</Text>
           </View>
         </View>
 
-        {/* Sections */}
         {sections.map((section, si) => (
           <View key={si} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
@@ -74,9 +73,10 @@ export function SettingsScreen({ navigation }: Props) {
                     ii < section.items.length - 1 && styles.settingRowBorder,
                   ]}
                   activeOpacity={0.7}
+                  onPress={() => 'screen' in item && item.screen && navigation.navigate(item.screen)}
                 >
                   <View style={styles.settingLeft}>
-                    <Text style={{ fontSize: 18 }}>{item.icon}</Text>
+                    <Text style={styles.settingIcon}>{item.icon}</Text>
                     <Text
                       style={[
                         styles.settingLabel,
@@ -93,7 +93,7 @@ export function SettingsScreen({ navigation }: Props) {
                       thumbColor={colors.white}
                     />
                   ) : (
-                    <Text style={styles.chevron}>›</Text>
+                    <Text style={styles.chevron}>{'>'}</Text>
                   )}
                 </TouchableOpacity>
               ))}
@@ -101,7 +101,6 @@ export function SettingsScreen({ navigation }: Props) {
           </View>
         ))}
 
-        {/* Sign out */}
         <TouchableOpacity style={styles.signOutBtn} onPress={logout}>
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
@@ -206,12 +205,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
+  settingIcon: {
+    width: 44,
+    color: colors.mid,
+    fontSize: fontSizes.xs,
+    fontWeight: '600',
+  },
   settingLabel: {
     fontSize: fontSizes.md,
     color: colors.dark,
   },
   chevron: {
-    fontSize: 22,
+    fontSize: 18,
     color: colors.light,
     fontWeight: '300',
   },

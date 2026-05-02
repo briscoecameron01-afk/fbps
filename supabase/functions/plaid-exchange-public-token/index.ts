@@ -1,0 +1,62 @@
+import {plaidRequest} from "../_shared/plaid";
+import {handleCors, jsonResponse} from "../_shared/cors";
+import {requireUser} from "../_shared/supabase";
+
+type PlaidAccount = {
+  account_id: string;
+  mask: string | null;
+  name: string;
+  official_name: string | null;
+  type: string;
+  subtype: string | null;
+};
+
+Deno.serve(async (req) => {
+  const cors = handleCors(req);
+  if (cors) return cors;
+
+  try {
+    const { user, adminClient } = await requireUser(req);
+    const { public_token, institution } = await req.json();
+
+    if (!public_token) {
+      return jsonResponse({ error: 'Missing public_token' }, 400);
+    }
+
+    const exchange = await plaidRequest<{ access_token: string; item_id: string }>(
+      '/item/public_token/exchange',
+      { public_token },
+    );
+
+    const accountsResponse = await plaidRequest<{ accounts: PlaidAccount[] }>('/accounts/get', {
+      access_token: exchange.access_token,
+    });
+
+    const rows = accountsResponse.accounts.map((account, index) => ({
+      user_id: user.id,
+      plaid_item_id: exchange.item_id,
+      plaid_access_token: exchange.access_token,
+      plaid_account_id: account.account_id,
+      institution_name: institution?.name || 'Unknown Bank',
+      institution_id: institution?.institution_id || null,
+      account_name: account.name,
+      account_official_name: account.official_name,
+      account_mask: account.mask,
+      account_type: account.type,
+      account_subtype: account.subtype,
+      is_primary: index === 0,
+      is_active: true,
+      last_synced_at: new Date().toISOString(),
+    }));
+
+    const { error } = await adminClient
+      .from('linked_accounts')
+      .upsert(rows, { onConflict: 'plaid_account_id' });
+
+    if (error) throw error;
+
+    return jsonResponse({ success: true, accounts: rows.length });
+  } catch (error) {
+    return jsonResponse({ error: error.message }, 400);
+  }
+});

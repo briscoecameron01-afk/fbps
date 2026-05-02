@@ -19,6 +19,7 @@ interface OTPScreenProps {
 
 export function OTPScreen({ navigation, route }: OTPScreenProps) {
   const email = route?.params?.email || '';
+  const method = route?.params?.method || 'email';
   const { verifyOTP, sendOTP, login } = useStore();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [countdown, setCountdown] = useState(24);
@@ -125,9 +126,9 @@ export function OTPScreen({ navigation, route }: OTPScreenProps) {
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.title}>Enter The Code</Text>
-          <Text style={styles.subtitle}>Check Your Phone</Text>
+          <Text style={styles.subtitle}>Check Your Email</Text>
           <Text style={styles.description}>
-            A verification code has been sent to +971XXXXXXXXX
+            A verification code has been sent to {method === 'email' && email ? email : 'your email address'}
           </Text>
         </View>
 

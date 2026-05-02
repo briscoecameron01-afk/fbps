@@ -3,8 +3,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text } from 'react-native';
-import { colors } from '../theme';
-import { useStore } from '../hooks/useStore';
+import { colors } from '@/theme';
+import { useStore } from '@/hooks/useStore';
 
 // Auth Screens
 import {
@@ -19,7 +19,7 @@ import {
   SuccessModal,
   PayScheduleSetupScreen,
   InitialBillSetupScreen,
-} from '../screens/auth';
+} from '@/screens/auth';
 
 // Main Screens
 import {

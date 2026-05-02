@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '../../theme';
+import { useStore } from '../../hooks/useStore';
 
 interface InitialBillSetupScreenProps {
   navigation: any;
@@ -25,17 +26,45 @@ const billCategories = [
   'Phone',
   'Insurance',
   'Rent',
+  'Mortgage',
+  'Gas',
+  'Car',
+  'Streaming',
+  'Credit Card',
+  'Loan',
+  'Subscription',
+  'Healthcare',
+  'Childcare',
+  'Education',
   'Other',
 ];
 
 export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupScreenProps) {
   const [billName, setBillName] = useState('');
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('USD');
   const [dueDate, setDueDate] = useState('');
   const [category, setCategory] = useState('');
   const [billType, setBillType] = useState<BillType>(null);
+  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { completeOnboarding } = useStore();
+
+  const currencyOptions = ['USD', 'AED', 'EUR', 'GBP'];
+  const dateOptions = Array.from({ length: 31 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() + index + 1);
+    return {
+      label: date.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+      value: date.toISOString().split('T')[0],
+    };
+  });
 
   const handleContinue = async () => {
     if (!billName || !amount || !dueDate || !category || !billType) {
@@ -48,9 +77,7 @@ export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupSc
       // TODO: Implement bill setup logic
       setTimeout(() => {
         setLoading(false);
-        // Navigate to main app after successful setup
-        // navigation.navigate('MainApp');
-        Alert.alert('Success', 'Bill setup complete!');
+        completeOnboarding();
       }, 1500);
     } catch (error) {
       setLoading(false);
@@ -63,6 +90,8 @@ export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupSc
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
       >
         {/* Title Section */}
         <View style={styles.titleSection}>
@@ -89,7 +118,18 @@ export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupSc
           <View style={styles.fieldContainer}>
             <Text style={styles.label}>Amount</Text>
             <View style={styles.amountInputContainer}>
-              <Text style={styles.currencySymbol}>AED</Text>
+              <TouchableOpacity
+                style={styles.currencySelector}
+                onPress={() => {
+                  setShowCurrencyDropdown(!showCurrencyDropdown);
+                  setShowDateDropdown(false);
+                  setShowCategoryDropdown(false);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.currencySymbol}>{currency}</Text>
+                <Text style={styles.currencyChevron}>▼</Text>
+              </TouchableOpacity>
               <TextInput
                 style={styles.amountInput}
                 placeholder="0.00"
@@ -100,6 +140,22 @@ export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupSc
                 editable={!loading}
               />
             </View>
+            {showCurrencyDropdown && (
+              <View style={styles.dropdownMenu}>
+                {currencyOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={styles.dropdownMenuItem}
+                    onPress={() => {
+                      setCurrency(option);
+                      setShowCurrencyDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownMenuItemText}>{option}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Due Date */}
@@ -107,18 +163,40 @@ export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupSc
             <Text style={styles.label}>Due Date</Text>
             <TouchableOpacity
               style={styles.dateInputContainer}
+              onPress={() => {
+                setShowDateDropdown(!showDateDropdown);
+                setShowCurrencyDropdown(false);
+                setShowCategoryDropdown(false);
+              }}
               activeOpacity={0.8}
             >
-              <TextInput
-                style={styles.dateInput}
-                placeholder="Select date"
-                placeholderTextColor={colors.textMuted}
-                value={dueDate}
-                onChangeText={setDueDate}
-                editable={false}
-              />
+              <Text style={[styles.dateInput, !dueDate && styles.dateInputPlaceholder]}>
+                {dateOptions.find((date) => date.value === dueDate)?.label || 'Select date'}
+              </Text>
               <Text style={styles.calendarIcon}>📅</Text>
             </TouchableOpacity>
+            {showDateDropdown && (
+              <View style={styles.dropdownMenu}>
+                <ScrollView
+                  style={styles.dropdownScroll}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {dateOptions.map((date) => (
+                    <TouchableOpacity
+                      key={date.value}
+                      style={styles.dropdownMenuItem}
+                      onPress={() => {
+                        setDueDate(date.value);
+                        setShowDateDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownMenuItemText}>{date.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </View>
 
           {/* Category */}
@@ -126,7 +204,11 @@ export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupSc
             <Text style={styles.label}>Category</Text>
             <TouchableOpacity
               style={styles.dropdownContainer}
-              onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              onPress={() => {
+                setShowCategoryDropdown(!showCategoryDropdown);
+                setShowCurrencyDropdown(false);
+                setShowDateDropdown(false);
+              }}
               activeOpacity={0.8}
             >
               <Text style={[
@@ -139,18 +221,24 @@ export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupSc
             </TouchableOpacity>
             {showCategoryDropdown && (
               <View style={styles.dropdownMenu}>
-                {billCategories.map((cat) => (
-                  <TouchableOpacity
-                    key={cat}
-                    style={styles.dropdownMenuItem}
-                    onPress={() => {
-                      setCategory(cat);
-                      setShowCategoryDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownMenuItemText}>{cat}</Text>
-                  </TouchableOpacity>
-                ))}
+                <ScrollView
+                  style={styles.dropdownScroll}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {billCategories.map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={styles.dropdownMenuItem}
+                      onPress={() => {
+                        setCategory(cat);
+                        setShowCategoryDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownMenuItemText}>{cat}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             )}
           </View>
@@ -262,11 +350,25 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: borderRadius.md,
   },
-  currencySymbol: {
+  currencySelector: {
+    minWidth: 88,
+    minHeight: 48,
     paddingHorizontal: spacing.lg,
+    borderRightWidth: 1,
+    borderRightColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  currencySymbol: {
     fontSize: fontSizes.md,
     fontWeight: fontWeights.semibold as any,
     color: colors.textPrimary,
+  },
+  currencyChevron: {
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary,
   },
   amountInput: {
     flex: 1,
@@ -289,6 +391,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
+  },
+  dateInputPlaceholder: {
+    color: colors.textMuted,
   },
   calendarIcon: {
     paddingHorizontal: spacing.lg,
@@ -322,6 +427,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: borderRadius.md,
     marginTop: spacing.sm,
+    maxHeight: 200,
+    overflow: 'hidden',
+  },
+  dropdownScroll: {
     maxHeight: 200,
   },
   dropdownMenuItem: {

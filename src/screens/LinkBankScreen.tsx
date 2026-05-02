@@ -2,19 +2,21 @@ import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform,
 } from 'react-native';
-import { colors, spacing, fontSizes, borderRadius } from '../theme';
+import { colors, spacing, fontSizes, borderRadius } from '@/theme';
 import { Button } from '../components';
-import { createLinkToken, exchangePublicToken } from '../services/plaid';
+import { createLinkToken, exchangePublicToken, openPlaidLinkWeb } from '../services/plaid';
 
 // ── Plaid Link SDK ──────────────────────────────────────
 // Production: uses react-native-plaid-link-sdk (requires dev build)
 // Development: falls back to simulated flow for Expo Go
 let PlaidLink: any = null;
+if (Platform.OS !== 'web') {
 try {
   const plaidModule = require('react-native-plaid-link-sdk');
   PlaidLink = plaidModule;
 } catch {
   // Plaid SDK not available (Expo Go) — will use simulated flow
+}
 }
 
 interface Props {
@@ -102,6 +104,30 @@ export function LinkBankScreen({ navigation, route }: Props) {
     }
   }, [linkToken, handleSuccess]);
 
+  const handleLinkWithWeb = useCallback(async () => {
+    try {
+      setState('loading');
+      setErrorMessage('');
+
+      let token = linkToken;
+      if (!token) {
+        token = await createLinkToken();
+        setLinkToken(token);
+      }
+
+      setState('linking');
+      const result = await openPlaidLinkWeb(token);
+      await exchangePublicToken(result.publicToken, {
+        institution: result.metadata?.institution,
+      });
+      setState('success');
+      handleSuccess();
+    } catch (err: any) {
+      setState('error');
+      setErrorMessage(err.message || 'Failed to connect bank');
+    }
+  }, [linkToken, handleSuccess]);
+
   // ── Simulated flow for Expo Go / development ──────────
   const handleLinkSimulated = useCallback(async () => {
     try {
@@ -177,7 +203,12 @@ export function LinkBankScreen({ navigation, route }: Props) {
   }, [linkToken, handleSuccess]);
 
   // Choose the right handler based on SDK availability
-  const handleLinkBank = PlaidLink ? handleLinkWithSDK : handleLinkSimulated;
+  const handleLinkBank =
+    Platform.OS === 'web'
+      ? handleLinkWithWeb
+      : PlaidLink
+        ? handleLinkWithSDK
+        : handleLinkSimulated;
 
   const handleSkip = () => {
     if (isOnboarding) {

@@ -9,9 +9,9 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '../../theme';
-import { useStore } from '../../hooks/useStore';
-import { supabase } from '../../services/supabase';
+import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '@/theme';
+import { useStore } from '@/hooks/useStore';
+import { supabase } from '@/services/supabase';
 
 interface LoginScreenProps {
   navigation: any;
@@ -22,11 +22,49 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [formError, setFormError] = useState('');
   const { signIn, login, completeOnboarding } = useStore();
 
+  const applyLoginError = (message: string) => {
+    const normalized = message.toLowerCase();
+    setEmailError('');
+    setPasswordError('');
+    setFormError('');
+
+    if (normalized.includes('invalid login credentials')) {
+      setEmailError('No account found with this email, or the password is incorrect.');
+      setPasswordError('Check your password and try again.');
+      return;
+    }
+
+    if (normalized.includes('email not confirmed')) {
+      setEmailError('Please verify your email before logging in.');
+      return;
+    }
+
+    if (normalized.includes('user not found')) {
+      setEmailError('No account found with this email.');
+      return;
+    }
+
+    if (normalized.includes('password')) {
+      setPasswordError(message);
+      return;
+    }
+
+    setFormError(message);
+  };
+
   const handleLogin = async () => {
+    setEmailError('');
+    setPasswordError('');
+    setFormError('');
+
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      if (!email) setEmailError('Enter your email address.');
+      if (!password) setPasswordError('Enter your password.');
       return;
     }
 
@@ -34,16 +72,14 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
     try {
       const result = await signIn(email, password);
       if (result?.error) {
-        Alert.alert('Login Failed', result.error);
+        applyLoginError(result.error);
         setLoading(false);
       } else {
         // Auth state change in store triggers navigation automatically
         setLoading(false);
       }
     } catch (error) {
-      // Fallback: use local auth for development/demo
-      login();
-      completeOnboarding();
+      applyLoginError('Unable to log in right now. Please try again.');
       setLoading(false);
     }
   };
@@ -121,8 +157,10 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               editable={!loading}
             />
+            {!!emailError && <Text style={styles.fieldError}>{emailError}</Text>}
           </View>
 
           {/* Password */}
@@ -133,8 +171,9 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
                 style={styles.passwordInput}
                 placeholder="Enter your password"
                 placeholderTextColor={colors.textMuted}
-                secureTextEntry={!showPassword}
-                value={password}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              value={password}
                 onChangeText={setPassword}
                 editable={!loading}
               />
@@ -145,6 +184,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
                 <Text style={styles.eyeButtonText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
               </TouchableOpacity>
             </View>
+            {!!passwordError && <Text style={styles.fieldError}>{passwordError}</Text>}
           </View>
 
           {/* Forgot Password Link */}
@@ -165,6 +205,7 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
         >
           <Text style={styles.loginButtonText}>{loading ? 'Logging In...' : 'Log In'}</Text>
         </TouchableOpacity>
+        {!!formError && <Text style={styles.formError}>{formError}</Text>}
 
         {/* Create Account Link */}
         <View style={styles.linkContainer}>
@@ -275,6 +316,20 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.md,
     color: colors.textPrimary,
   },
+  fieldError: {
+    color: colors.error,
+    fontSize: fontSizes.xs,
+    marginTop: spacing.sm,
+    lineHeight: 16,
+  },
+  formError: {
+    color: colors.error,
+    fontSize: fontSizes.sm,
+    textAlign: 'center',
+    marginTop: -spacing.md,
+    marginBottom: spacing.lg,
+    lineHeight: 18,
+  },
   passwordInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -336,6 +391,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.semibold as any,
   },
   dividerContainer: {
+    display: 'none',
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.xl,
@@ -351,6 +407,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   socialButtonsContainer: {
+    display: 'none',
     flexDirection: 'column',
     gap: spacing.md,
   },
