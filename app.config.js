@@ -3,6 +3,12 @@ const isWeb =
   process.argv.includes('--web') ||
   process.argv.includes('web') ||
   (process.argv.includes('--platform') && process.argv[process.argv.indexOf('--platform') + 1] === 'web');
+const includeNativeConfigPlugins =
+  !isWeb &&
+  (
+    process.env.EAS_BUILD === 'true' ||
+    process.env.EXPO_PUBLIC_ENABLE_NATIVE_CONFIG_PLUGINS === 'true'
+  );
 
 const nativePlugins = [
   [
@@ -48,7 +54,7 @@ module.exports = {
     plugins: [
       'expo-router',
       'expo-secure-store',
-      ...(isWeb ? [] : nativePlugins),
+      ...(includeNativeConfigPlugins ? nativePlugins : []),
     ],
   },
 };

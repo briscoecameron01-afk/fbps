@@ -1,4 +1,5 @@
-/.env.example
+/.env
 /.idea/
 /node_modules/
 /dist/
+.vercel

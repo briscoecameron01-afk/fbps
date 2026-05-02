@@ -28,6 +28,7 @@ const billCategories = [
   'Rent',
   'Mortgage',
   'Gas',
+  'Car',
   'Streaming',
   'Credit Card',
   'Loan',
@@ -41,7 +42,7 @@ const billCategories = [
 export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupScreenProps) {
   const [billName, setBillName] = useState('');
   const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState('AED');
+  const [currency, setCurrency] = useState('USD');
   const [dueDate, setDueDate] = useState('');
   const [category, setCategory] = useState('');
   const [billType, setBillType] = useState<BillType>(null);
@@ -51,7 +52,7 @@ export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupSc
   const [loading, setLoading] = useState(false);
   const { completeOnboarding } = useStore();
 
-  const currencyOptions = ['AED', 'USD', 'EUR', 'GBP'];
+  const currencyOptions = ['USD', 'AED', 'EUR', 'GBP'];
   const dateOptions = Array.from({ length: 31 }, (_, index) => {
     const date = new Date();
     date.setDate(date.getDate() + index + 1);

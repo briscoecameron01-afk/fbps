@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '../../theme';
 import { useStore } from '../../hooks/useStore';
-import { supabase } from '../../services/supabase';
 
 interface SignUpScreenProps {
   navigation: any;
@@ -19,6 +18,8 @@ interface SignUpScreenProps {
 
 export function SignUpScreen({ navigation }: SignUpScreenProps) {
   const [username, setUsername] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -28,7 +29,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
   const { signUp } = useStore();
 
   const handleSignUp = async () => {
-    if (!username || !email || !password || !confirmPassword) {
+    if (!username.trim() || !firstName.trim() || !lastName.trim() || !email.trim() || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -45,58 +46,22 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
 
     setLoading(true);
     try {
-      const result = await signUp(email, password, username);
+      const result = await signUp(email, password, username, firstName, lastName);
       if (result?.error) {
         Alert.alert('Sign Up Failed', result.error);
         setLoading(false);
       } else {
         setLoading(false);
-        navigation.navigate('Verification', { email });
+        navigation.navigate(result.needsEmailConfirmation ? 'Verification' : 'PayScheduleSetup', { email });
       }
     } catch (error) {
       setLoading(false);
-      navigation.navigate('Verification', { email });
+      Alert.alert('Sign Up Failed', 'Unable to create your account. Please try again.');
     }
   };
 
-  const handleGoogleSignUp = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: 'fractionalbillpay://auth/callback',
-          queryParams: { access_type: 'offline', prompt: 'consent' },
-        },
-      });
-      if (error) {
-        Alert.alert('Error', error.message);
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to sign up with Google');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAppleSignUp = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: 'fractionalbillpay://auth/callback',
-        },
-      });
-      if (error) {
-        Alert.alert('Error', error.message);
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to sign up with Apple');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleGoogleSignUp = () => {};
+  const handleAppleSignUp = () => {};
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -126,24 +91,54 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
             <Text style={styles.label}>Username</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your username"
+              placeholder="Choose a username"
               placeholderTextColor={colors.textMuted}
               value={username}
               onChangeText={setUsername}
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!loading}
+            />
+          </View>
+
+          {/* First Name */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>First Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your first name"
+              placeholderTextColor={colors.textMuted}
+              value={firstName}
+              onChangeText={setFirstName}
+              editable={!loading}
+            />
+          </View>
+
+          {/* Last Name */}
+          <View style={styles.fieldContainer}>
+            <Text style={styles.label}>Last Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your last name"
+              placeholderTextColor={colors.textMuted}
+              value={lastName}
+              onChangeText={setLastName}
               editable={!loading}
             />
           </View>
 
           {/* Email */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Email Address / Phone Number</Text>
+            <Text style={styles.label}>Email Address</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your email or phone"
+              placeholder="Enter your email"
               placeholderTextColor={colors.textMuted}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
               editable={!loading}
             />
           </View>
@@ -157,6 +152,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
                 placeholder="Enter your password"
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
                 value={password}
                 onChangeText={setPassword}
                 editable={!loading}
@@ -179,6 +175,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
                 placeholder="Confirm your password"
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 editable={!loading}
@@ -364,6 +361,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.semibold as any,
   },
   dividerContainer: {
+    display: 'none',
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.xl,
@@ -379,6 +377,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   socialButtonsContainer: {
+    display: 'none',
     flexDirection: 'column',
     gap: spacing.md,
   },

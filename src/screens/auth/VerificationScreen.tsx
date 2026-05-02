@@ -12,12 +12,14 @@ import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } 
 
 interface VerificationScreenProps {
   navigation: any;
+  route: any;
 }
 
 type VerificationMethod = 'email' | 'phone' | null;
 
-export function VerificationScreen({ navigation }: VerificationScreenProps) {
-  const [selectedMethod, setSelectedMethod] = useState<VerificationMethod>(null);
+export function VerificationScreen({ navigation, route }: VerificationScreenProps) {
+  const email = route?.params?.email || '';
+  const [selectedMethod, setSelectedMethod] = useState<VerificationMethod>('email');
   const [loading, setLoading] = useState(false);
 
   const handleContinue = () => {
@@ -29,7 +31,7 @@ export function VerificationScreen({ navigation }: VerificationScreenProps) {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      navigation.navigate('OTP', { method: selectedMethod });
+      navigation.navigate('OTP', { method: selectedMethod, email });
     }, 1000);
   };
 
@@ -53,7 +55,7 @@ export function VerificationScreen({ navigation }: VerificationScreenProps) {
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.title}>Verification</Text>
-          <Text style={styles.subtitle}>Choose how you'd like to verify your profile</Text>
+          <Text style={styles.subtitle}>Verify your email address to finish creating your account</Text>
         </View>
 
         {/* Option Cards */}
@@ -83,30 +85,6 @@ export function VerificationScreen({ navigation }: VerificationScreenProps) {
             )}
           </TouchableOpacity>
 
-          {/* Phone Option */}
-          <TouchableOpacity
-            style={[
-              styles.optionCard,
-              isSelected('phone') && styles.optionCardSelected,
-            ]}
-            onPress={() => setSelectedMethod('phone')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.optionContent}>
-              <View style={styles.iconCircle}>
-                <Text style={styles.iconText}>📱</Text>
-              </View>
-              <View style={styles.optionTextContainer}>
-                <Text style={styles.optionTitle}>Phone</Text>
-                <Text style={styles.optionDescription}>Receive code via SMS</Text>
-              </View>
-            </View>
-            {isSelected('phone') && (
-              <View style={styles.checkmark}>
-                <Text style={styles.checkmarkText}>✓</Text>
-              </View>
-            )}
-          </TouchableOpacity>
         </View>
 
         {/* Continue Button */}

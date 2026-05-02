@@ -16,9 +16,7 @@ CREATE TABLE IF NOT EXISTS public.payment_methods (
   is_default BOOLEAN DEFAULT FALSE,
   provider_method_id TEXT NOT NULL UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-  CONSTRAINT payment_methods_one_default_per_user UNIQUE (user_id, is_default) WHERE is_default = TRUE
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Transactions table - stores payment transaction records
@@ -53,6 +51,9 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_payment_methods_user_id ON public.payment_methods(user_id);
 CREATE INDEX IF NOT EXISTS idx_payment_methods_is_default ON public.payment_methods(user_id, is_default);
+CREATE UNIQUE INDEX IF NOT EXISTS payment_methods_one_default_per_user
+  ON public.payment_methods(user_id)
+  WHERE is_default = TRUE;
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON public.transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_payment_intent_id ON public.transactions(payment_intent_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_transaction_id ON public.transactions(transaction_id);

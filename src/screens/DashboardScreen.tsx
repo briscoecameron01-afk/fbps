@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { colors, spacing, fontSizes, borderRadius } from '../theme';
 import { formatCurrency } from '../utils/calculations';
+import { useStore } from '../hooks/useStore';
 
 interface Props {
   navigation: any;
@@ -12,9 +13,11 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 export function DashboardScreen({ navigation }: Props) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+  const { userProfile, userName } = useStore();
 
   const currentMonth = MONTHS[selectedMonth];
   const currentYear = new Date().getFullYear();
+  const displayName = `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userName || userProfile.username || 'User';
 
   const mockBills = [
     { id: '1', name: 'Electricity', amount: 120, dueDate: 'Jul 10', status: 'On Track' as const },
@@ -30,7 +33,7 @@ export function DashboardScreen({ navigation }: Props) {
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.greeting}>Good Morning</Text>
-              <Text style={styles.name}>Sarah Loren</Text>
+              <Text style={styles.name}>{displayName}</Text>
             </View>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>🔔</Text>

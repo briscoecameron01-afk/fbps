@@ -1,6 +1,6 @@
-import { handleCors, jsonResponse } from '../_shared/cors.ts';
-import { plaidRequest } from '../_shared/plaid.ts';
-import { requireUser } from '../_shared/supabase.ts';
+import {plaidRequest} from "../_shared/plaid";
+import {handleCors, jsonResponse} from "../_shared/cors";
+import {requireUser} from "../_shared/supabase";
 
 type PlaidAccount = {
   account_id: string;

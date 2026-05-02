@@ -126,15 +126,29 @@ const mapAchievement = (dbRow: any): Achievement => ({
   unlockedAt: dbRow.unlocked_at,
 });
 
-const mapProfile = (dbRow: any): UserProfile => ({
-  id: dbRow.id,
-  username: dbRow.username,
-  email: dbRow.email,
-  avatarUrl: dbRow.avatar_url,
-  plan: dbRow.plan,
-  streakDays: dbRow.streak_days,
-  employerLinked: dbRow.employer_linked,
-});
+const mapProfile = (dbRow: any): UserProfile => {
+  const fallbackName = dbRow.full_name || dbRow.username || '';
+  const [fallbackFirstName, ...fallbackLastNameParts] = fallbackName.trim().split(/\s+/).filter(Boolean);
+
+  return {
+    id: dbRow.id,
+    username: dbRow.username || dbRow.full_name || '',
+    firstName: dbRow.first_name || fallbackFirstName || '',
+    lastName: dbRow.last_name || fallbackLastNameParts.join(' '),
+    email: dbRow.email,
+    phoneNumber: dbRow.phone_number || '',
+    avatarUrl: dbRow.avatar_url,
+    plan: dbRow.plan || 'freemium',
+    streakDays: dbRow.streak_days || 0,
+    employerLinked: dbRow.employer_linked || false,
+    hasCompletedOnboarding: dbRow.has_completed_onboarding || false,
+  };
+};
+
+const getProfileDisplayName = (profile?: Partial<UserProfile> | null, fallback?: string) => {
+  const fullName = `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim();
+  return fullName || profile?.username || fallback || 'User';
+};
 
 // ── Mock Data ──────────────────────────────────────────
 const MOCK_BILLS: Bill[] = [
@@ -241,10 +255,14 @@ const MOCK_CONTRIBUTIONS: Contribution[] = Array.from({ length: 20 }, (_, i) => 
 const MOCK_USER_PROFILE: UserProfile = {
   id: 'user1',
   username: 'Cameron',
+  firstName: 'Cameron',
+  lastName: '',
   email: 'founder@fractionalbillpay.com',
+  phoneNumber: '',
   plan: 'freemium',
   streakDays: 5,
   employerLinked: false,
+  hasCompletedOnboarding: true,
 };
 
 const MOCK_LINKED_ACCOUNTS: LinkedAccount[] = [
@@ -498,7 +516,7 @@ interface AppState {
   login: () => void;
   logout: () => void;
   completeOnboarding: () => void;
-  signUp: (email: string, password: string, username: string) => Promise<{ error?: string }>;
+  signUp: (email: string, password: string, username: string, firstName: string, lastName: string) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
@@ -558,7 +576,6 @@ export const useStore = create<AppState>((set, get) => ({
       if (session?.user) {
         set({
           isAuthenticated: true,
-          hasCompletedOnboarding: true,
           supabaseUser: session.user,
         });
         await get().syncFromSupabase();
@@ -578,6 +595,7 @@ export const useStore = create<AppState>((set, get) => ({
             });
           } else if (event === 'SIGNED_IN' && session?.user) {
             set({ isAuthenticated: true, supabaseUser: session.user });
+            get().syncFromSupabase();
           }
         });
       }
@@ -620,8 +638,10 @@ export const useStore = create<AppState>((set, get) => ({
       const updates: Partial<AppState> = {};
 
       if (profileRes.data) {
-        updates.userProfile = mapProfile(profileRes.data);
-        updates.userName = profileRes.data.username || profileRes.data.full_name;
+        const profile = mapProfile(profileRes.data);
+        updates.userProfile = profile;
+        updates.userName = getProfileDisplayName(profile, profileRes.data.full_name);
+        updates.hasCompletedOnboarding = profile.hasCompletedOnboarding;
         updates.paySchedule = profileRes.data.pay_schedule || 'daily';
         updates.autoTransferEnabled = profileRes.data.auto_transfer_enabled ?? true;
         updates.autoTransferFrequency = profileRes.data.auto_transfer_frequency || 'daily';
@@ -1061,6 +1081,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (!DatabaseServices?.ProfileService) {
         set((state) => ({
           userProfile: { ...state.userProfile, ...updates },
+          userName: getProfileDisplayName({ ...state.userProfile, ...updates }, state.userName),
           isLoading: false,
         }));
         return {};
@@ -1074,6 +1095,7 @@ export const useStore = create<AppState>((set, get) => ({
 
       set((state) => ({
         userProfile: { ...state.userProfile, ...updates },
+        userName: getProfileDisplayName({ ...state.userProfile, ...updates }, state.userName),
         isLoading: false,
       }));
       return {};
@@ -1116,10 +1138,18 @@ export const useStore = create<AppState>((set, get) => ({
   // ── Auth Actions (Sync) ────────────────────────────────────────
   login: () => set({ isAuthenticated: true }),
   logout: () => set({ isAuthenticated: false, hasCompletedOnboarding: false }),
-  completeOnboarding: () => set({ hasCompletedOnboarding: true, isAuthenticated: true }),
+  completeOnboarding: () => {
+    set((state) => ({
+      hasCompletedOnboarding: true,
+      isAuthenticated: true,
+      userProfile: { ...state.userProfile, hasCompletedOnboarding: true },
+    }));
+
+    DatabaseServices?.ProfileService?.updateProfile?.({ hasCompletedOnboarding: true });
+  },
 
   // ── Auth Actions (Async) ────────────────────────────────────────
-  signUp: async (email, password, username) => {
+  signUp: async (email, password, username, firstName, lastName) => {
     set({ isLoading: true, authError: null });
     try {
       if (!AuthService?.signUp) {
@@ -1127,18 +1157,34 @@ export const useStore = create<AppState>((set, get) => ({
         return { error: 'Auth service not available' };
       }
 
-      const { user, error } = await AuthService.signUp({ email, password, username });
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      const { user, session, needsEmailConfirmation, error } = await AuthService.signUp({
+        email,
+        password,
+        username,
+        firstName,
+        lastName,
+      });
       if (error) {
         set({ isLoading: false, authError: error });
         return { error };
       }
 
       set({
-        isAuthenticated: true,
+        isAuthenticated: !!session,
         supabaseUser: user,
+        userName: fullName,
+        userProfile: {
+          ...get().userProfile,
+          id: user?.id || get().userProfile.id,
+          username: username.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email,
+        },
         isLoading: false,
       });
-      return {};
+      return { needsEmailConfirmation };
     } catch (err: any) {
       const errMsg = err?.message || 'Sign up failed';
       set({ isLoading: false, authError: errMsg });
@@ -1163,6 +1209,7 @@ export const useStore = create<AppState>((set, get) => ({
       set({
         isAuthenticated: true,
         supabaseUser: user,
+        userName: user?.user_metadata?.full_name || user?.user_metadata?.username || user?.email || get().userName,
         isLoading: false,
       });
 

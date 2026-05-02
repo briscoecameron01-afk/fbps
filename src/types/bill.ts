@@ -54,11 +54,15 @@ export interface Notification {
 export interface UserProfile {
   id: string;
   username: string;
+  firstName: string;
+  lastName: string;
   email: string;
+  phoneNumber?: string;
   avatarUrl?: string;
   plan: 'freemium' | 'premium';
   streakDays: number;
   employerLinked: boolean;
+  hasCompletedOnboarding: boolean;
 }
 
 export interface Bill {

@@ -4,7 +4,7 @@
 -- ══════════════════════════════════════════════════════════
 
 -- Enable UUID generation
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ── Profiles (extends Supabase auth.users) ─────────────
 CREATE TABLE profiles (
@@ -20,7 +20,7 @@ CREATE TABLE profiles (
 
 -- ── Bills ───────────────────────────────────────────────
 CREATE TABLE bills (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
@@ -38,7 +38,7 @@ CREATE TABLE bills (
 
 -- ── Bill Buckets (funding progress per billing period) ──
 CREATE TABLE bill_buckets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     bill_id UUID NOT NULL REFERENCES bills(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     target_amount DECIMAL(10,2) NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE bill_buckets (
 
 -- ── Contributions (individual micro-payments) ───────────
 CREATE TABLE contributions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     bill_id UUID NOT NULL REFERENCES bills(id) ON DELETE CASCADE,
     bucket_id UUID NOT NULL REFERENCES bill_buckets(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
