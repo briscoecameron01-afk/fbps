@@ -8,6 +8,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "web-plaid-sandbox": "expo start --web --clear",
+    "deploy-to-vercel-prod": "npx vercel --prod",
     "build:web": "expo export --platform web",
     "lint": "eslint ."
   },

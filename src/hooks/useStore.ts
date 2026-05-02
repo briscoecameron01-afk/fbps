@@ -516,7 +516,7 @@ interface AppState {
   login: () => void;
   logout: () => void;
   completeOnboarding: () => void;
-  signUp: (email: string, password: string, username: string, firstName: string, lastName: string) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>;
+  signUp: (email: string, password: string, username: string, firstName: string, lastName: string) => Promise<{ error?: string; errorCode?: string; errorStatus?: number; needsEmailConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
@@ -1137,7 +1137,16 @@ export const useStore = create<AppState>((set, get) => ({
 
   // ── Auth Actions (Sync) ────────────────────────────────────────
   login: () => set({ isAuthenticated: true }),
-  logout: () => set({ isAuthenticated: false, hasCompletedOnboarding: false }),
+  logout: () => {
+    AuthService?.signOut?.();
+    set({
+      isAuthenticated: false,
+      hasCompletedOnboarding: false,
+      supabaseUser: null,
+      authError: null,
+      isLoading: false,
+    });
+  },
   completeOnboarding: () => {
     set((state) => ({
       hasCompletedOnboarding: true,
@@ -1158,7 +1167,7 @@ export const useStore = create<AppState>((set, get) => ({
       }
 
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-      const { user, session, needsEmailConfirmation, error } = await AuthService.signUp({
+      const { user, session, needsEmailConfirmation, error, errorCode, errorStatus } = await AuthService.signUp({
         email,
         password,
         username,
@@ -1167,7 +1176,7 @@ export const useStore = create<AppState>((set, get) => ({
       });
       if (error) {
         set({ isLoading: false, authError: error });
-        return { error };
+        return { error, errorCode, errorStatus };
       }
 
       set({

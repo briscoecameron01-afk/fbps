@@ -15,11 +15,14 @@ const MENU_ITEMS = [
 ];
 
 export function ProfileHubScreen({ navigation }: any) {
-  const { userProfile, userName } = useStore();
+  const { userProfile, userName, signOut } = useStore();
   const displayName = `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userName || userProfile.username;
 
   const handleMenuPress = (item: typeof MENU_ITEMS[0]) => {
-    if (item.screen === null) return;
+    if (item.screen === null) {
+      signOut();
+      return;
+    }
     navigation.navigate(item.screen);
   };
 

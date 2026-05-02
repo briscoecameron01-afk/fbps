@@ -8,7 +8,7 @@ interface Props {
 }
 
 export function SettingsScreen({ navigation }: Props) {
-  const { userName, userProfile, logout } = useStore();
+  const { userName, userProfile, signOut } = useStore();
   const displayName = `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userName || userProfile.username;
   const profileInitial = displayName.trim()[0]?.toUpperCase() || 'U';
 
@@ -101,7 +101,7 @@ export function SettingsScreen({ navigation }: Props) {
           </View>
         ))}
 
-        <TouchableOpacity style={styles.signOutBtn} onPress={logout}>
+        <TouchableOpacity style={styles.signOutBtn} onPress={signOut}>
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
 
