@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, SafeAreaView,
 } from 'react-native';
-import { colors, spacing, fontSizes, borderRadius } from '../theme';
-import { useStore } from '../hooks/useStore';
-import { BillCategory, CATEGORY_ICONS, CATEGORY_LABELS } from '../types/bill';
+import { colors, spacing, fontSizes, borderRadius } from '@/theme';
+import { useStore } from '@/hooks/useStore';
+import { BillCategory, CATEGORY_ICONS, CATEGORY_LABELS } from '@/types/bill';
 
 interface Props {
   navigation: any;

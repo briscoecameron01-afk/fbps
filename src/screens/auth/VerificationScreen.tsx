@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '../../theme';
+import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '@/theme';
 
 interface VerificationScreenProps {
   navigation: any;

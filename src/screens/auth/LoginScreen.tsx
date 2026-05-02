@@ -9,9 +9,9 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '../../theme';
-import { useStore } from '../../hooks/useStore';
-import { supabase } from '../../services/supabase';
+import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '@/theme';
+import { useStore } from '@/hooks/useStore';
+import { supabase } from '@/services/supabase';
 
 interface LoginScreenProps {
   navigation: any;
