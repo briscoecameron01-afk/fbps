@@ -4,6 +4,14 @@ import {
 } from 'react-native';
 import { colors, spacing, fontSizes, borderRadius, fontWeights } from '../theme';
 import { ProgressBar } from '../components';
+import { useStore } from '../hooks/useStore';
+import {
+  calculateContribution,
+  formatCurrency,
+  formatDate,
+  getFundedPercent,
+  getNextDueDate,
+} from '../utils/calculations';
 
 interface Props {
   navigation: any;
@@ -11,107 +19,120 @@ interface Props {
 }
 
 export function BillBreakdownScreen({ navigation, route }: Props) {
-  // Mock data
-  const bill = {
-    name: 'Electricity Bill',
-    dueDate: '28 Feb',
-    daysRemaining: 10,
-    totalBill: 120.00,
-    amountSaved: 78.00,
-    amountRemaining: 42.00,
-    progress: 65,
-    nextContribution: 4.00,
-  };
+  const { bills, buckets, contributions } = useStore();
+  const billId = route?.params?.billId;
+  const bill = bills.find((item) => item.id === billId);
+  const bucket = buckets.find((item) => item.billId === billId);
+  const deposits = contributions.filter((item) => item.billId === billId).slice(0, 5);
 
-  const deposits = [
-    { date: 'Feb 18', amount: 4.00 },
-    { date: 'Feb 17', amount: 4.00 },
-    { date: 'Feb 16', amount: 4.00 },
-    { date: 'Feb 15', amount: 4.00 },
-    { date: 'Feb 14', amount: 4.00 },
-  ];
+  if (!bill) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.backBtn}>Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Bill Breakdown</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>This bill could not be found.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const targetAmount = bucket?.targetAmount ?? bill.amount;
+  const amountSaved = bucket?.currentAmount ?? 0;
+  const amountRemaining = Math.max(targetAmount - amountSaved, 0);
+  const progress = getFundedPercent(amountSaved, targetAmount);
+  const nextDueDate = bill.dueDate ? new Date(bill.dueDate) : getNextDueDate(bill.dueDay);
+  const daysRemaining = Math.max(0, Math.ceil((nextDueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+  const nextContribution = calculateContribution(amountRemaining || targetAmount, bill.dueDay, bill.cadence);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtn}>← Back</Text>
+            <Text style={styles.backBtn}>Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Bill Breakdown</Text>
           <View style={{ width: 24 }} />
         </View>
 
-        {/* Bill Title and Subtitle */}
         <View style={styles.billSection}>
           <Text style={styles.billTitle}>{bill.name}</Text>
           <Text style={styles.billSubtitle}>
-            Due on {bill.dueDate} · {bill.daysRemaining} days remaining
+            Due on {formatDate(nextDueDate)} · {daysRemaining} days remaining
           </Text>
         </View>
 
-        {/* Main Info Card */}
         <View style={styles.mainCard}>
           <View style={styles.cardRow}>
             <Text style={styles.cardLabel}>Total Bill</Text>
-            <Text style={styles.cardValue}>${bill.totalBill.toFixed(2)}</Text>
+            <Text style={styles.cardValue}>{formatCurrency(targetAmount)}</Text>
           </View>
           <View style={[styles.cardRow, styles.cardRowBorder]}>
             <Text style={styles.cardLabel}>Amount Saved</Text>
-            <Text style={styles.cardValue}>${bill.amountSaved.toFixed(2)}</Text>
+            <Text style={styles.cardValue}>{formatCurrency(amountSaved)}</Text>
           </View>
           <View style={styles.cardRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardLabel}>Amount Remaining</Text>
-              <Text style={styles.cardValue}>${bill.amountRemaining.toFixed(2)}</Text>
+              <Text style={styles.cardValue}>{formatCurrency(amountRemaining)}</Text>
             </View>
             <View style={{ flex: 1, marginLeft: spacing.lg }}>
-              <ProgressBar progress={bill.progress} height={6} color={colors.primary} />
+              <ProgressBar progress={progress} height={6} color={colors.primary} />
             </View>
           </View>
         </View>
 
-        {/* Two-Column Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Days Remaining</Text>
-            <Text style={styles.statValue}>{bill.daysRemaining}</Text>
+            <Text style={styles.statValue}>{daysRemaining}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Next Contribution</Text>
-            <Text style={styles.statValue}>${bill.nextContribution.toFixed(2)}</Text>
+            <Text style={styles.statValue}>{formatCurrency(nextContribution.perPeriod)}{nextContribution.label}</Text>
           </View>
         </View>
 
-        {/* Recent Deposits Section */}
         <View style={styles.depositsSection}>
           <Text style={styles.sectionTitle}>Recent Deposits</Text>
-          {deposits.map((deposit, index) => (
+          {deposits.length === 0 ? (
+            <Text style={styles.emptyText}>No contributions yet.</Text>
+          ) : deposits.map((deposit, index) => (
             <View
-              key={index}
+              key={deposit.id}
               style={[
                 styles.depositRow,
                 index !== deposits.length - 1 && styles.depositRowBorder,
               ]}
             >
-              <Text style={styles.depositDate}>{deposit.date}</Text>
-              <Text style={styles.depositAmount}>${deposit.amount.toFixed(2)}</Text>
+              <Text style={styles.depositDate}>{formatDate(deposit.executedAt || deposit.createdAt)}</Text>
+              <Text style={styles.depositAmount}>{formatCurrency(deposit.amount)}</Text>
             </View>
           ))}
         </View>
 
-        {/* Action Buttons */}
         <View style={styles.buttonsContainer}>
-          <TouchableOpacity style={[styles.outlineButton, styles.buttonMargin]}>
+          <TouchableOpacity
+            style={[styles.outlineButton, styles.buttonMargin]}
+            onPress={() => navigation.navigate('ManualContribution')}
+          >
             <Text style={styles.outlineButtonText}>Manual Contribution</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.outlineButton, styles.buttonMargin]}>
+          <TouchableOpacity
+            style={[styles.outlineButton, styles.buttonMargin]}
+            onPress={() => navigation.navigate('FundingPreference', { billId: bill.id, billAmount: bill.amount })}
+          >
             <Text style={styles.outlineButtonText}>Adjust Schedule</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.primaryButton, styles.buttonMargin]}
-            onPress={() => navigation.navigate('PayBill')}
+            onPress={() => navigation.navigate('PayBill', { billId: bill.id })}
           >
             <Text style={styles.primaryButtonText}>Pay Bill</Text>
           </TouchableOpacity>
@@ -124,10 +145,7 @@ export function BillBreakdownScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -137,30 +155,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backBtn: {
-    color: colors.primary,
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.semibold,
-  },
-  headerTitle: {
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
-    fontSize: fontSizes.lg,
-  },
-  billSection: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-  },
-  billTitle: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  billSubtitle: {
-    fontSize: fontSizes.sm,
-    color: colors.textSecondary,
-  },
+  backBtn: { color: colors.primary, fontSize: fontSizes.md, fontWeight: fontWeights.semibold },
+  headerTitle: { fontWeight: fontWeights.bold, color: colors.textPrimary, fontSize: fontSizes.lg },
+  billSection: { paddingHorizontal: spacing.xl, paddingVertical: spacing.lg },
+  billTitle: { fontSize: fontSizes.xl, fontWeight: fontWeights.bold, color: colors.textPrimary, marginBottom: spacing.sm },
+  billSubtitle: { fontSize: fontSizes.sm, color: colors.textSecondary },
   mainCard: {
     marginHorizontal: spacing.xl,
     backgroundColor: colors.backgroundCard,
@@ -170,33 +169,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginBottom: spacing.xl,
   },
-  cardRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-  },
-  cardRowBorder: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  cardLabel: {
-    fontSize: fontSizes.sm,
-    color: colors.textSecondary,
-  },
-  cardValue: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.xl,
-    gap: spacing.md,
-    marginBottom: spacing.xl,
-  },
+  cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md },
+  cardRowBorder: { borderTopWidth: 1, borderTopColor: colors.border, borderBottomWidth: 1, borderBottomColor: colors.border },
+  cardLabel: { fontSize: fontSizes.sm, color: colors.textSecondary },
+  cardValue: { fontSize: fontSizes.md, fontWeight: fontWeights.bold, color: colors.textPrimary },
+  statsRow: { flexDirection: 'row', paddingHorizontal: spacing.xl, gap: spacing.md, marginBottom: spacing.xl },
   statCard: {
     flex: 1,
     backgroundColor: colors.backgroundCard,
@@ -205,51 +182,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  statLabel: {
-    fontSize: fontSizes.sm,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  statValue: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
-  },
-  depositsSection: {
-    paddingHorizontal: spacing.xl,
-    marginBottom: spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.lg,
-  },
-  depositRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-  },
-  depositRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  depositDate: {
-    fontSize: fontSizes.sm,
-    color: colors.textSecondary,
-  },
-  depositAmount: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.textPrimary,
-  },
-  buttonsContainer: {
-    paddingHorizontal: spacing.xl,
-  },
-  buttonMargin: {
-    marginBottom: spacing.md,
-  },
+  statLabel: { fontSize: fontSizes.sm, color: colors.textSecondary, marginBottom: spacing.sm },
+  statValue: { fontSize: fontSizes.lg, fontWeight: fontWeights.bold, color: colors.textPrimary },
+  depositsSection: { paddingHorizontal: spacing.xl, marginBottom: spacing.xl },
+  sectionTitle: { fontSize: fontSizes.md, fontWeight: fontWeights.bold, color: colors.textPrimary, marginBottom: spacing.lg },
+  depositRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md },
+  depositRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
+  depositDate: { fontSize: fontSizes.sm, color: colors.textSecondary },
+  depositAmount: { fontSize: fontSizes.sm, fontWeight: fontWeights.semibold, color: colors.textPrimary },
+  buttonsContainer: { paddingHorizontal: spacing.xl },
+  buttonMargin: { marginBottom: spacing.md },
   outlineButton: {
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
@@ -259,11 +201,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  outlineButtonText: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.semibold,
-    color: colors.textPrimary,
-  },
+  outlineButtonText: { fontSize: fontSizes.md, fontWeight: fontWeights.semibold, color: colors.textPrimary },
   primaryButton: {
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
@@ -272,9 +210,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryButtonText: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.semibold,
-    color: colors.background,
-  },
+  primaryButtonText: { fontSize: fontSizes.md, fontWeight: fontWeights.semibold, color: colors.background },
+  emptyState: { padding: spacing.xl },
+  emptyText: { color: colors.textSecondary, fontSize: fontSizes.md },
 });

@@ -55,6 +55,7 @@ const mapBill = (dbRow: any): Bill => ({
   id: dbRow.id,
   userId: dbRow.user_id,
   name: dbRow.name,
+  description: dbRow.description || undefined,
   amount: dbRow.amount,
   dueDay: dbRow.due_day,
   dueDate: dbRow.due_date,
@@ -83,6 +84,7 @@ const mapContribution = (dbRow: any): Contribution => ({
   billId: dbRow.bill_id,
   bucketId: dbRow.bucket_id,
   amount: dbRow.amount,
+  fundingSource: dbRow.funding_source || undefined,
   status: dbRow.status,
   executedAt: dbRow.executed_at,
   createdAt: dbRow.created_at,
@@ -498,6 +500,7 @@ interface AppState {
   // ── Contribution Actions (sync + async) ────
   makeManualContribution: (billId: string, amount: number, source: string) => void;
   makeManualContributionAsync: (billId: string, amount: number, source: string) => Promise<{ error?: string }>;
+  markBillPaidAsync: (billId: string) => Promise<{ error?: string }>;
 
   // ── Settings Actions (sync + async) ────
   setPaySchedule: (cadence: Cadence) => void;
@@ -536,14 +539,14 @@ export const useStore = create<AppState>((set, get) => ({
   supabaseUser: null,
 
   // Initial state - Bills
-  bills: MOCK_BILLS,
-  buckets: MOCK_BUCKETS,
-  contributions: MOCK_CONTRIBUTIONS,
+  bills: [],
+  buckets: [],
+  contributions: [],
 
   // Initial state - User Profile & Accounts
   userProfile: MOCK_USER_PROFILE,
   linkedAccounts: MOCK_LINKED_ACCOUNTS,
-  transfers: MOCK_TRANSFERS,
+  transfers: [],
   notifications: MOCK_NOTIFICATIONS,
   achievements: MOCK_ACHIEVEMENTS,
 
@@ -646,9 +649,9 @@ export const useStore = create<AppState>((set, get) => ({
         updates.autoTransferEnabled = profileRes.data.auto_transfer_enabled ?? true;
         updates.autoTransferFrequency = profileRes.data.auto_transfer_frequency || 'daily';
       }
-      if (billsRes.data?.length) updates.bills = billsRes.data.map(mapBill);
-      if (bucketsRes.data?.length) updates.buckets = bucketsRes.data.map(mapBucket);
-      if (contributionsRes.data?.length) updates.contributions = contributionsRes.data.map(mapContribution);
+      if (Array.isArray(billsRes.data)) updates.bills = billsRes.data.map(mapBill);
+      if (Array.isArray(bucketsRes.data)) updates.buckets = bucketsRes.data.map(mapBucket);
+      if (Array.isArray(contributionsRes.data)) updates.contributions = contributionsRes.data.map(mapContribution);
       if (accountsRes.data?.length) updates.linkedAccounts = accountsRes.data.map(mapLinkedAccount);
       if (transfersRes.data?.length) updates.transfers = transfersRes.data.map(mapTransfer);
       if (notificationsRes.data?.length) updates.notifications = notificationsRes.data.map(mapNotification);
@@ -730,6 +733,15 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       if (!DatabaseServices?.BillService) {
         get().updateBill(id, updates);
+        if ('amount' in updates && typeof updates.amount === 'number') {
+          set((state) => ({
+            buckets: state.buckets.map((bucket) =>
+              bucket.billId === id && bucket.status !== 'paid'
+                ? { ...bucket, targetAmount: updates.amount as number }
+                : bucket
+            ),
+          }));
+        }
         set({ isLoading: false });
         return {};
       }
@@ -741,6 +753,15 @@ export const useStore = create<AppState>((set, get) => ({
       }
 
       get().updateBill(id, updates);
+      if ('amount' in updates && typeof updates.amount === 'number') {
+        set((state) => ({
+          buckets: state.buckets.map((bucket) =>
+            bucket.billId === id && bucket.status !== 'paid'
+              ? { ...bucket, targetAmount: updates.amount as number }
+              : bucket
+          ),
+        }));
+      }
       set({ isLoading: false });
       return {};
     } catch (err: any) {
@@ -957,6 +978,7 @@ export const useStore = create<AppState>((set, get) => ({
       billId,
       bucketId: bucket.id,
       amount,
+      fundingSource: source,
       status: 'completed',
       executedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
@@ -1004,6 +1026,42 @@ export const useStore = create<AppState>((set, get) => ({
       return {};
     } catch (err: any) {
       const errMsg = err?.message || 'Failed to make contribution';
+      set({ isLoading: false, dataError: errMsg });
+      return { error: errMsg };
+    }
+  },
+
+  markBillPaidAsync: async (billId) => {
+    set({ isLoading: true, dataError: null });
+    try {
+      const bucket = get().buckets.find((item) => item.billId === billId);
+
+      if (DatabaseServices?.BucketService?.markBillPaid) {
+        const result = await DatabaseServices.BucketService.markBillPaid(billId);
+        if (result.error) {
+          set({ isLoading: false, dataError: result.error });
+          return { error: result.error };
+        }
+      }
+
+      set((state) => ({
+        isLoading: false,
+        buckets: state.buckets.map((item) =>
+          item.billId === billId
+            ? {
+                ...item,
+                currentAmount: item.targetAmount,
+                status: 'paid',
+                paidAt: new Date().toISOString(),
+              }
+            : item
+        ),
+      }));
+
+      if (!bucket) await get().syncFromSupabase();
+      return {};
+    } catch (err: any) {
+      const errMsg = err?.message || 'Failed to pay bill';
       set({ isLoading: false, dataError: errMsg });
       return { error: errMsg };
     }

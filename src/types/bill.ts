@@ -2,6 +2,7 @@ export type Cadence = 'daily' | 'weekly' | 'biweekly' | 'monthly';
 
 export type BillCategory =
   | 'housing'
+  | 'car'
   | 'transport'
   | 'utilities'
   | 'insurance'
@@ -69,6 +70,7 @@ export interface Bill {
   id: string;
   userId: string;
   name: string;
+  description?: string;
   amount: number;
   dueDay: number; // 1-31
   dueDate?: string; // ISO date
@@ -97,6 +99,7 @@ export interface Contribution {
   billId: string;
   bucketId: string;
   amount: number;
+  fundingSource?: string;
   status: 'pending' | 'completed' | 'failed';
   executedAt?: string;
   createdAt: string;
@@ -113,6 +116,7 @@ export interface ContributionSchedule {
 
 export const CATEGORY_ICONS: Record<BillCategory, string> = {
   housing: '🏠',
+  car: '🚗',
   transport: '🚗',
   utilities: '⚡',
   insurance: '🛡️',
@@ -123,6 +127,7 @@ export const CATEGORY_ICONS: Record<BillCategory, string> = {
 
 export const CATEGORY_LABELS: Record<BillCategory, string> = {
   housing: 'Housing',
+  car: 'Car',
   transport: 'Transport',
   utilities: 'Utilities',
   insurance: 'Insurance',

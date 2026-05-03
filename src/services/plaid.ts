@@ -8,6 +8,10 @@ export type LinkedAccount = {
   account_mask: string;
   account_type: string | null;
   account_subtype: string | null;
+  balance_available: number | null;
+  balance_current: number | null;
+  balance_iso_currency_code: string | null;
+  balance_last_synced_at: string | null;
   is_primary: boolean;
   is_active: boolean;
 };
@@ -37,6 +41,10 @@ const mockAccounts: LinkedAccount[] = [
     account_mask: '4832',
     account_type: 'depository',
     account_subtype: 'checking',
+    balance_available: 1240.5,
+    balance_current: 1302.14,
+    balance_iso_currency_code: 'USD',
+    balance_last_synced_at: new Date().toISOString(),
     is_primary: true,
     is_active: true,
   },
@@ -47,6 +55,10 @@ const mockAccounts: LinkedAccount[] = [
     account_mask: '9271',
     account_type: 'depository',
     account_subtype: 'savings',
+    balance_available: 8420,
+    balance_current: 8420,
+    balance_iso_currency_code: 'USD',
+    balance_last_synced_at: new Date().toISOString(),
     is_primary: false,
     is_active: true,
   },
@@ -80,12 +92,18 @@ export async function exchangePublicToken(publicToken: string, metadata?: { inst
 export async function getLinkedAccounts() {
   const { data, error } = await supabase
     .from('linked_accounts')
-    .select('id,institution_name,account_name,account_mask,account_type,account_subtype,is_primary,is_active')
+    .select('id,institution_name,account_name,account_mask,account_type,account_subtype,balance_available,balance_current,balance_iso_currency_code,balance_last_synced_at,is_primary,is_active')
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
   if (error) return mockAccounts;
   return (data || []) as LinkedAccount[];
+}
+
+export async function refreshLinkedAccountBalances() {
+  const { data, error } = await supabase.functions.invoke('plaid-refresh-balances');
+  if (error) throw new Error(error.message || 'Failed to refresh balances');
+  return data;
 }
 
 export async function unlinkAccount(id: string) {

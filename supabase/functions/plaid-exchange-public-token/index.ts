@@ -1,6 +1,6 @@
-import {plaidRequest} from "../_shared/plaid";
-import {handleCors, jsonResponse} from "../_shared/cors";
-import {requireUser} from "../_shared/supabase";
+import {plaidRequest} from "../_shared/plaid.ts";
+import {handleCors, jsonResponse} from "../_shared/cors.ts";
+import {requireUser} from "../_shared/supabase.ts";
 
 type PlaidAccount = {
   account_id: string;
@@ -9,6 +9,12 @@ type PlaidAccount = {
   official_name: string | null;
   type: string;
   subtype: string | null;
+  balances?: {
+    available: number | null;
+    current: number | null;
+    iso_currency_code: string | null;
+    unofficial_currency_code: string | null;
+  };
 };
 
 Deno.serve(async (req) => {
@@ -44,6 +50,11 @@ Deno.serve(async (req) => {
       account_mask: account.mask,
       account_type: account.type,
       account_subtype: account.subtype,
+      balance_available: account.balances?.available ?? null,
+      balance_current: account.balances?.current ?? null,
+      balance_iso_currency_code: account.balances?.iso_currency_code ?? null,
+      balance_unofficial_currency_code: account.balances?.unofficial_currency_code ?? null,
+      balance_last_synced_at: new Date().toISOString(),
       is_primary: index === 0,
       is_active: true,
       last_synced_at: new Date().toISOString(),

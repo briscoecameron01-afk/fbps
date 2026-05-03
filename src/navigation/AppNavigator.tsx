@@ -82,14 +82,15 @@ export type RootStackParamList = {
   ContributionFailed: undefined;
   BillsCalendar: undefined;
   AddBill: undefined;
-  FundingPreference: undefined;
+  EditBill: { billId: string };
+  FundingPreference: { billId?: string; billAmount?: number };
   BillConfirmation: undefined;
   BillDetail: { billId: string };
   BillBreakdown: { billId: string };
   DepositHistory: { billId: string };
   PayBill: { billId: string };
-  PaymentReview: { billId: string };
-  PaymentReceipt: { billId: string };
+  PaymentReview: { billId: string; paymentMethod?: string; amount?: number };
+  PaymentReceipt: { billId: string; paymentMethod?: string; amount?: number };
   LinkBank: undefined;
   BankList: undefined;
   BankDetails: undefined;
@@ -145,6 +146,29 @@ function HomeStack() {
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="ContributionFailed" component={ContributionFailedScreen} />
+      <Stack.Screen
+        name="AddBill"
+        component={AddBillScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="EditBill"
+        component={AddBillScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen name="ManualContribution" component={ManualContributionScreen} />
+      <Stack.Screen
+        name="LinkBank"
+        component={LinkBankScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen name="BillDetail" component={BillDetailScreen} />
+      <Stack.Screen name="BillBreakdown" component={BillBreakdownScreen} />
+      <Stack.Screen name="DepositHistory" component={DepositHistoryScreen} />
+      <Stack.Screen name="FundingPreference" component={FundingPreferenceScreen} />
+      <Stack.Screen name="PayBill" component={PayBillScreen} />
+      <Stack.Screen name="PaymentReview" component={PaymentReviewScreen} />
+      <Stack.Screen name="PaymentReceipt" component={PaymentReceiptScreen} />
     </Stack.Navigator>
   );
 }
@@ -164,6 +188,11 @@ function BillsStack() {
         component={AddBillScreen}
         options={{ presentation: 'modal' }}
       />
+      <Stack.Screen
+        name="EditBill"
+        component={AddBillScreen}
+        options={{ presentation: 'modal' }}
+      />
       <Stack.Screen name="FundingPreference" component={FundingPreferenceScreen} />
       <Stack.Screen name="BillConfirmation" component={BillConfirmationScreen} />
       <Stack.Screen name="BillDetail" component={BillDetailScreen} />
@@ -172,6 +201,12 @@ function BillsStack() {
       <Stack.Screen name="PayBill" component={PayBillScreen} />
       <Stack.Screen name="PaymentReview" component={PaymentReviewScreen} />
       <Stack.Screen name="PaymentReceipt" component={PaymentReceiptScreen} />
+      <Stack.Screen name="ManualContribution" component={ManualContributionScreen} />
+      <Stack.Screen
+        name="LinkBank"
+        component={LinkBankScreen}
+        options={{ presentation: 'modal' }}
+      />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
     </Stack.Navigator>
   );

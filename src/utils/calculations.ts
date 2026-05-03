@@ -47,6 +47,13 @@ export function calculateContribution(
         label: '/2 weeks',
       };
     }
+    case 'monthly': {
+      return {
+        perPeriod: amount,
+        periods: 1,
+        label: '/month',
+      };
+    }
   }
 }
 

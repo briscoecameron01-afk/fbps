@@ -1,6 +1,6 @@
-import {plaidRequest} from "../_shared/plaid";
-import {handleCors, jsonResponse} from "../_shared/cors";
-import {requireUser} from "../_shared/supabase";
+import {plaidRequest} from "../_shared/plaid.ts";
+import {handleCors, jsonResponse} from "../_shared/cors.ts";
+import {requireUser} from "../_shared/supabase.ts";
 
 
 Deno.serve(async (req) => {
