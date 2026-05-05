@@ -34,6 +34,9 @@ module.exports = {
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
+    web: {
+      favicon: './assets/favicon.png',
+    },
     userInterfaceStyle: 'light',
     scheme: 'fractional',
     splash: {
@@ -47,6 +50,7 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
+        foregroundImage: './assets/icon.png',
         backgroundColor: '#0B2545',
       },
       package: 'com.fractionalbillpay.app',
