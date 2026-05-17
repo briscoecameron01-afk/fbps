@@ -22,14 +22,15 @@ export function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) 
   const { resetPassword } = useStore();
 
   const handleResetPassword = async () => {
-    if (!email) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
       Alert.alert('Error', 'Please enter your email address');
       return;
     }
 
     setLoading(true);
     try {
-      const result = await resetPassword(email);
+      const result = await resetPassword(normalizedEmail);
       setLoading(false);
       if (result?.error) {
         Alert.alert('Error', result.error);
@@ -47,11 +48,7 @@ export function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) 
       }
     } catch (error) {
       setLoading(false);
-      Alert.alert(
-        'Success',
-        'If an account exists with that email, a reset link has been sent.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-      );
+      Alert.alert('Error', 'Unable to send a reset link right now. Please try again.');
     }
   };
 
@@ -87,6 +84,8 @@ export function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) 
               placeholder="Enter your email address"
               placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
               value={email}
               onChangeText={setEmail}
               editable={!loading}

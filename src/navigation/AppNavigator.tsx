@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text } from 'react-native';
 import { colors } from '@/theme';
 import { useStore } from '@/hooks/useStore';
+import { supabase } from '@/services/supabase';
 
 // Auth Screens
 import {
@@ -266,6 +267,7 @@ function ProfileStack() {
       <Stack.Screen name="Subscription" component={SubscriptionScreen} />
       <Stack.Screen name="PlansComparison" component={PlansComparisonScreen} />
       <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+      <Stack.Screen name="LinkedAccounts" component={LinkedAccountsScreen} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
       <Stack.Screen name="Security" component={SecurityScreen} />
       <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
@@ -329,11 +331,34 @@ function MainTabs() {
 // Root Navigator
 export function AppNavigator() {
   const { isAuthenticated, hasCompletedOnboarding } = useStore();
+  const [passwordRecoveryActive, setPasswordRecoveryActive] = React.useState(() => {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname;
+    const params = `${window.location.search}${window.location.hash}`;
+    return path.includes('reset-password') || params.includes('type=recovery');
+  });
+
+  React.useEffect(() => {
+    if (!supabase?.auth?.onAuthStateChange) return undefined;
+
+    const { data } = supabase.auth.onAuthStateChange((event: string) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecoveryActive(true);
+      }
+      if (event === 'SIGNED_OUT') {
+        setPasswordRecoveryActive(false);
+      }
+    });
+
+    return () => data?.subscription?.unsubscribe?.();
+  }, []);
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
+        {passwordRecoveryActive ? (
+          <Stack.Screen name="SetNewPassword" component={SetNewPasswordScreen} />
+        ) : !isAuthenticated ? (
           <>
             <Stack.Screen name="Splash" component={SplashScreen} />
             <Stack.Screen name="Welcome" component={WelcomeScreen} />

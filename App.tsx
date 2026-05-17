@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useStore } from './src/hooks/useStore';
+import { setupWebAppDocument } from './src/utils/setupWebApp';
 
 function LoadingScreen() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
   const { initialize, isInitialized, isLoading } = useStore();
 
   useEffect(() => {
+    setupWebAppDocument();
     initialize();
   }, []);
 

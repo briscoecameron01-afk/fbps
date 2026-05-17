@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -10,6 +10,11 @@ import {
   Alert,
 } from 'react-native';
 import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '../../theme';
+import {
+  clearPasswordRecoverySession,
+  getSession,
+  updatePassword,
+} from '../../services/auth';
 
 interface SetNewPasswordScreenProps {
   navigation: any;
@@ -21,6 +26,20 @@ export function SetNewPasswordScreen({ navigation }: SetNewPasswordScreenProps) 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [sessionError, setSessionError] = useState('');
+
+  useEffect(() => {
+    const checkRecoverySession = async () => {
+      const result = await getSession();
+      if (result.error || !result.session?.user) {
+        setSessionError('This password reset link is invalid or has expired. Please request a new reset link.');
+      }
+      setCheckingSession(false);
+    };
+
+    checkRecoverySession();
+  }, []);
 
   const handleUpdatePassword = async () => {
     if (!password || !confirmPassword) {
@@ -40,21 +59,76 @@ export function SetNewPasswordScreen({ navigation }: SetNewPasswordScreenProps) 
 
     setLoading(true);
     try {
-      // TODO: Implement password update logic
-      setTimeout(() => {
+      const result = await updatePassword({ password });
+      if (result.error) {
         setLoading(false);
-        Alert.alert('Success', 'Password updated successfully', [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Login'),
-          },
-        ]);
-      }, 1500);
+        Alert.alert('Error', result.error);
+        return;
+      }
+
+      await clearPasswordRecoverySession();
+      if (typeof window !== 'undefined' && window.history?.replaceState) {
+        window.history.replaceState({}, '', '/');
+      }
+
+      setLoading(false);
+      Alert.alert('Success', 'Password updated successfully. Please log in with your new password.', [
+        {
+          text: 'OK',
+          onPress: () => navigation.reset?.({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          }) || navigation.navigate('Login'),
+        },
+      ]);
     } catch (error) {
       setLoading(false);
       Alert.alert('Error', 'Failed to update password. Please try again.');
     }
   };
+
+  if (checkingSession) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.centerState}>
+          <Text style={styles.subtitle}>Checking reset link...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (sessionError) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.centerState}>
+          <Text style={styles.title}>Reset Link Expired</Text>
+          <Text style={styles.subtitle}>{sessionError}</Text>
+          <TouchableOpacity
+            style={styles.updateButton}
+            onPress={() => {
+              if (typeof window !== 'undefined' && window.history?.replaceState) {
+                window.history.replaceState({}, '', '/');
+              }
+              navigation.navigate('ForgotPassword');
+            }}
+          >
+            <Text style={styles.updateButtonText}>Request New Link</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => {
+              if (typeof window !== 'undefined' && window.history?.replaceState) {
+                window.history.replaceState({}, '', '/');
+              }
+              navigation.navigate('Login');
+            }}
+          >
+            <Text style={styles.secondaryButtonText}>Back to Login</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -160,6 +234,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: screenPadding.horizontal,
     paddingVertical: screenPadding.vertical,
   },
+  centerState: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: screenPadding.horizontal,
+    gap: spacing.lg,
+  },
   backButton: {
     width: 40,
     height: 40,
@@ -253,5 +333,18 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.semibold as any,
     color: colors.background,
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold as any,
+    color: colors.textPrimary,
   },
 });

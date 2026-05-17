@@ -280,13 +280,13 @@ export function LinkBankScreen({ navigation, route }: Props) {
         )}
 
         {/* SDK status indicator */}
-        {state === 'idle' && !PlaidLink && (
-          <View style={styles.devBanner}>
-            <Text style={styles.devBannerText}>
-              Development Mode — Using simulated bank connection
-            </Text>
-          </View>
-        )}
+        {/*{state === 'idle' && !PlaidLink && (*/}
+        {/*  <View style={styles.devBanner}>*/}
+        {/*    <Text style={styles.devBannerText}>*/}
+        {/*      Development Mode — Using simulated bank connection*/}
+        {/*    </Text>*/}
+        {/*  </View>*/}
+        {/*)}*/}
 
         {/* Security badges */}
         {(state === 'idle' || state === 'loading') && (

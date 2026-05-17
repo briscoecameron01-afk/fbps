@@ -33,37 +33,6 @@ declare global {
   }
 }
 
-const mockAccounts: LinkedAccount[] = [
-  {
-    id: 'mock-1',
-    institution_name: 'Chase Bank',
-    account_name: 'Total Checking',
-    account_mask: '4832',
-    account_type: 'depository',
-    account_subtype: 'checking',
-    balance_available: 1240.5,
-    balance_current: 1302.14,
-    balance_iso_currency_code: 'USD',
-    balance_last_synced_at: new Date().toISOString(),
-    is_primary: true,
-    is_active: true,
-  },
-  {
-    id: 'mock-2',
-    institution_name: 'Bank of America',
-    account_name: 'Savings',
-    account_mask: '9271',
-    account_type: 'depository',
-    account_subtype: 'savings',
-    balance_available: 8420,
-    balance_current: 8420,
-    balance_iso_currency_code: 'USD',
-    balance_last_synced_at: new Date().toISOString(),
-    is_primary: false,
-    is_active: true,
-  },
-];
-
 function assertNoFunctionError(error: any) {
   if (error) {
     throw new Error(error.message || 'Plaid request failed');
@@ -90,13 +59,13 @@ export async function exchangePublicToken(publicToken: string, metadata?: { inst
 }
 
 export async function getLinkedAccounts() {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('linked_accounts')
     .select('id,institution_name,account_name,account_mask,account_type,account_subtype,balance_available,balance_current,balance_iso_currency_code,balance_last_synced_at,is_primary,is_active')
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
-  if (error) return mockAccounts;
+  if (error) throw new Error(error.message || 'Unable to load linked accounts');
   return (data || []) as LinkedAccount[];
 }
 
@@ -107,7 +76,7 @@ export async function refreshLinkedAccountBalances() {
 }
 
 export async function unlinkAccount(id: string) {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('linked_accounts')
     .update({ is_active: false })
     .eq('id', id);
@@ -120,7 +89,7 @@ export async function setPrimaryAccount(id: string) {
   const accounts = await getLinkedAccounts();
   await Promise.all(
     accounts.map((account) =>
-      supabase
+      (supabase as any)
         .from('linked_accounts')
         .update({ is_primary: account.id === id })
         .eq('id', account.id)

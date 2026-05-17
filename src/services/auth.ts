@@ -1,5 +1,13 @@
 import { supabase } from './supabase';
 
+function getPasswordResetRedirectUrl() {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/reset-password`;
+  }
+
+  return 'fractional://reset-password';
+}
+
 export async function signUp({
   email,
   password,
@@ -96,7 +104,24 @@ export async function signOut() {
 }
 
 export async function resetPassword({ email }: { email: string }) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    redirectTo: getPasswordResetRedirectUrl(),
+  });
+  return { error: error?.message ?? null };
+}
+
+export async function updatePassword({ password }: { password: string }) {
+  const { data, error } = await supabase.auth.updateUser({ password });
+  return { user: data?.user ?? null, error: error?.message ?? null };
+}
+
+export async function getSession() {
+  const { data, error } = await supabase.auth.getSession();
+  return { session: data?.session ?? null, error: error?.message ?? null };
+}
+
+export async function clearPasswordRecoverySession() {
+  const { error } = await supabase.auth.signOut();
   return { error: error?.message ?? null };
 }
 

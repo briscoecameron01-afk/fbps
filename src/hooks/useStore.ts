@@ -152,6 +152,19 @@ const getProfileDisplayName = (profile?: Partial<UserProfile> | null, fallback?:
   return fullName || profile?.username || fallback || 'User';
 };
 
+const EMPTY_USER_PROFILE: UserProfile = {
+  id: '',
+  username: '',
+  firstName: '',
+  lastName: '',
+  email: '',
+  phoneNumber: '',
+  plan: 'freemium',
+  streakDays: 0,
+  employerLinked: false,
+  hasCompletedOnboarding: false,
+};
+
 // ── Mock Data ──────────────────────────────────────────
 const MOCK_BILLS: Bill[] = [
   {
@@ -535,7 +548,7 @@ export const useStore = create<AppState>((set, get) => ({
   // Initial state - Auth
   isAuthenticated: false,
   hasCompletedOnboarding: false,
-  userName: 'Cam',
+  userName: '',
   supabaseUser: null,
 
   // Initial state - Bills
@@ -544,11 +557,11 @@ export const useStore = create<AppState>((set, get) => ({
   contributions: [],
 
   // Initial state - User Profile & Accounts
-  userProfile: MOCK_USER_PROFILE,
-  linkedAccounts: MOCK_LINKED_ACCOUNTS,
+  userProfile: EMPTY_USER_PROFILE,
+  linkedAccounts: [],
   transfers: [],
-  notifications: MOCK_NOTIFICATIONS,
-  achievements: MOCK_ACHIEVEMENTS,
+  notifications: [],
+  achievements: [],
 
   // Initial state - Settings
   autoTransferEnabled: true,
@@ -652,10 +665,10 @@ export const useStore = create<AppState>((set, get) => ({
       if (Array.isArray(billsRes.data)) updates.bills = billsRes.data.map(mapBill);
       if (Array.isArray(bucketsRes.data)) updates.buckets = bucketsRes.data.map(mapBucket);
       if (Array.isArray(contributionsRes.data)) updates.contributions = contributionsRes.data.map(mapContribution);
-      if (accountsRes.data?.length) updates.linkedAccounts = accountsRes.data.map(mapLinkedAccount);
-      if (transfersRes.data?.length) updates.transfers = transfersRes.data.map(mapTransfer);
-      if (notificationsRes.data?.length) updates.notifications = notificationsRes.data.map(mapNotification);
-      if (achievementsRes.data?.length) updates.achievements = achievementsRes.data.map(mapAchievement);
+      if (Array.isArray(accountsRes.data)) updates.linkedAccounts = accountsRes.data.map(mapLinkedAccount);
+      if (Array.isArray(transfersRes.data)) updates.transfers = transfersRes.data.map(mapTransfer);
+      if (Array.isArray(notificationsRes.data)) updates.notifications = notificationsRes.data.map(mapNotification);
+      if (Array.isArray(achievementsRes.data)) updates.achievements = achievementsRes.data.map(mapAchievement);
 
       set(updates);
     } catch (err) {
