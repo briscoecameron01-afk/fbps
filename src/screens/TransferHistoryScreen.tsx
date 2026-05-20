@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, borderRadius, fontSizes, fontWeights } from '../theme';
 import { useStore } from '../hooks/useStore';
-import { Contribution } from '../types/bill';
+import { Transfer } from '../types/bill';
+import { refreshUnitTransfers } from '../services/unit';
 
-const FILTER_OPTIONS = ['All', 'Completed', 'Pending', 'Failed'] as const;
+const FILTER_OPTIONS = ['All', 'Success', 'Pending', 'Failed'] as const;
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -19,37 +21,44 @@ function formatDate(value: string | undefined) {
 
 export function TransferHistoryScreen({ navigation }: any) {
   const [selectedFilter, setSelectedFilter] = useState<typeof FILTER_OPTIONS[number]>('All');
-  const { contributions, bills } = useStore();
+  const { transfers, syncFromSupabase } = useStore();
 
-  const rows = contributions
-    .map((contribution) => ({
-      ...contribution,
-      billName: bills.find((bill) => bill.id === contribution.billId)?.name || 'Deleted bill',
-    }))
-    .sort((a, b) =>
-      new Date(b.executedAt || b.createdAt).getTime() - new Date(a.executedAt || a.createdAt).getTime()
-    );
+  useFocusEffect(
+    useCallback(() => {
+      const refresh = async () => {
+        try {
+          await refreshUnitTransfers();
+        } catch {
+          // Keep the latest synced history visible when Unit is not configured yet.
+        }
+        await syncFromSupabase();
+      };
 
+      refresh();
+    }, [syncFromSupabase])
+  );
+
+  const rows = [...transfers].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const filteredTransfers = selectedFilter === 'All'
     ? rows
     : rows.filter((item) => item.status === selectedFilter.toLowerCase());
 
-  const getStatusColor = (status: Contribution['status']) => {
+  const getStatusColor = (status: Transfer['status']) => {
     switch (status) {
-      case 'completed': return colors.success;
+      case 'success': return colors.success;
       case 'pending': return colors.warning;
       case 'failed': return colors.error;
       default: return colors.textSecondary;
     }
   };
 
-  const renderTransferItem = ({ item }: { item: Contribution & { billName: string } }) => (
+  const renderTransferItem = ({ item }: { item: Transfer }) => (
     <View style={styles.transferCard}>
       <View style={styles.transferHeader}>
         <View style={styles.transferText}>
           <Text style={styles.billName}>{item.billName}</Text>
           <Text style={styles.transferInfo}>
-            {formatCurrency(item.amount)} • {formatDate(item.executedAt || item.createdAt)}
+            {formatCurrency(item.amount)} - {formatDate(item.date)}
           </Text>
           {!!item.fundingSource && (
             <Text style={styles.fundingSource}>{item.fundingSource}</Text>
@@ -66,7 +75,7 @@ export function TransferHistoryScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>← Back</Text>
+          <Text style={styles.backBtn}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Transfer History</Text>
         <View style={{ width: 50 }} />
@@ -90,7 +99,7 @@ export function TransferHistoryScreen({ navigation }: any) {
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>No transfers yet</Text>
           <Text style={styles.emptyText}>
-            Contributions and bill funding activity will appear here once they are saved.
+            Unit ACH transfers will appear here once money movement is initiated.
           </Text>
         </View>
       ) : (

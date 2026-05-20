@@ -95,7 +95,7 @@ export function PayBillScreen({ navigation, route }: Props) {
           {showMethods && (
             <View style={styles.methodList}>
               {accounts.length === 0 ? (
-                <TouchableOpacity style={styles.methodItem} onPress={() => navigation.navigate('LinkBank')}>
+                <TouchableOpacity style={styles.methodItem} onPress={() => navigation.navigate('LinkBank', { autoStart: true })}>
                   <Text style={styles.methodItemActive}>Link a bank account</Text>
                 </TouchableOpacity>
               ) : accounts.map((account) => (

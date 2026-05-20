@@ -14,11 +14,18 @@ export type LinkedAccount = {
   balance_last_synced_at: string | null;
   is_primary: boolean;
   is_active: boolean;
+  unit_counterparty_id?: string | null;
+  unit_counterparty_status?: string | null;
 };
 
 export type PlaidInstitution = {
   name?: string;
   institution_id?: string;
+};
+
+export type ExchangePublicTokenResponse = {
+  success: boolean;
+  accounts: LinkedAccount[];
 };
 
 declare global {
@@ -52,7 +59,7 @@ export async function createLinkToken() {
 }
 
 export async function exchangePublicToken(publicToken: string, metadata?: { institution?: PlaidInstitution }) {
-  return invokePlaidFunction('plaid-exchange-public-token', {
+  return invokePlaidFunction<ExchangePublicTokenResponse>('plaid-exchange-public-token', {
     public_token: publicToken,
     institution: metadata?.institution,
   });
@@ -61,7 +68,7 @@ export async function exchangePublicToken(publicToken: string, metadata?: { inst
 export async function getLinkedAccounts() {
   const { data, error } = await (supabase as any)
     .from('linked_accounts')
-    .select('id,institution_name,account_name,account_mask,account_type,account_subtype,balance_available,balance_current,balance_iso_currency_code,balance_last_synced_at,is_primary,is_active')
+    .select('id,institution_name,account_name,account_mask,account_type,account_subtype,balance_available,balance_current,balance_iso_currency_code,balance_last_synced_at,is_primary,is_active,unit_counterparty_id,unit_counterparty_status')
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 

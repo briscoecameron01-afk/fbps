@@ -2,7 +2,6 @@ export type Cadence = 'daily' | 'weekly' | 'biweekly' | 'monthly';
 
 export type BillCategory =
   | 'housing'
-  | 'car'
   | 'transport'
   | 'utilities'
   | 'insurance'
@@ -116,7 +115,6 @@ export interface ContributionSchedule {
 
 export const CATEGORY_ICONS: Record<BillCategory, string> = {
   housing: '🏠',
-  car: '🚗',
   transport: '🚗',
   utilities: '⚡',
   insurance: '🛡️',
@@ -127,7 +125,6 @@ export const CATEGORY_ICONS: Record<BillCategory, string> = {
 
 export const CATEGORY_LABELS: Record<BillCategory, string> = {
   housing: 'Housing',
-  car: 'Car',
   transport: 'Transport',
   utilities: 'Utilities',
   insurance: 'Insurance',

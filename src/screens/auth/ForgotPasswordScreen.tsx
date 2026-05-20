@@ -19,6 +19,8 @@ interface ForgotPasswordScreenProps {
 export function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [sentEmail, setSentEmail] = useState('');
   const { resetPassword } = useStore();
 
   const handleResetPassword = async () => {
@@ -35,22 +37,49 @@ export function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) 
       if (result?.error) {
         Alert.alert('Error', result.error);
       } else {
-        Alert.alert(
-          'Check Your Email',
-          'A password reset link has been sent to your email address.',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('Login'),
-            },
-          ]
-        );
+        setSentEmail(normalizedEmail);
+        setResetEmailSent(true);
       }
     } catch (error) {
       setLoading(false);
       Alert.alert('Error', 'Unable to send a reset link right now. Please try again.');
     }
   };
+
+  if (resetEmailSent) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.centerPrompt}>
+          <View style={styles.promptCard}>
+            <View style={styles.promptIcon}>
+              <Text style={styles.promptIconText}>✓</Text>
+            </View>
+            <Text style={styles.promptTitle}>Check Your Email</Text>
+            <Text style={styles.promptText}>
+              We sent a password reset link to {sentEmail}. Open the link in that email to set a new password.
+            </Text>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => navigation.navigate('Login')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.resetButtonText}>Back to Login</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => {
+                setResetEmailSent(false);
+                setLoading(false);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.secondaryButtonText}>Use a Different Email</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -206,5 +235,55 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     color: colors.primary,
     fontWeight: fontWeights.semibold as any,
+  },
+  centerPrompt: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: screenPadding.horizontal,
+    paddingVertical: screenPadding.vertical,
+  },
+  promptCard: {
+    backgroundColor: colors.backgroundCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  promptIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  promptIconText: {
+    color: colors.background,
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold as any,
+  },
+  promptTitle: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold as any,
+  },
+  promptText: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.md,
+    lineHeight: 22,
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold as any,
+    color: colors.textPrimary,
   },
 });

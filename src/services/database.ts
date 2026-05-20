@@ -8,6 +8,11 @@ function isSchemaCacheColumnError(error: any, column: string) {
   return message.includes(`'${column}' column`) || message.includes(`column "${column}"`);
 }
 
+function isMissingTableError(error: any, table: string) {
+  const message = `${error?.message || ''} ${error?.details || ''}`;
+  return message.includes(`'${table}'`) || message.includes(`relation "${table}"`);
+}
+
 async function getCurrentUserId() {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data?.user) return null;
@@ -308,15 +313,81 @@ export const ContributionService = {
 };
 
 export const TransferService = {
-  getTransfers: emptyList,
+  async getTransfers() {
+    const userId = await getCurrentUserId();
+    if (!userId) return { data: [], error: null };
+
+    const { data, error } = await (supabase as any)
+      .from('unit_transfers')
+      .select('*, bills(name), linked_accounts(institution_name,account_name,account_mask)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      if (isMissingTableError(error, 'unit_transfers')) {
+        return { data: [], error: null };
+      }
+      return { data: [], error: error.message };
+    }
+
+    return { data: data || [], error: null };
+  },
   retryTransfer: ok,
 };
 
 export const LinkedAccountService = {
-  getLinkedAccounts: emptyList,
+  async getLinkedAccounts() {
+    const userId = await getCurrentUserId();
+    if (!userId) return { data: [], error: null };
+
+    const { data, error } = await supabase
+      .from('linked_accounts')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    return { data: data || [], error: error?.message ?? null };
+  },
+
+  async removeLinkedAccount(id: string) {
+    const userId = await getCurrentUserId();
+    if (!userId) return { data: null, error: 'Not authenticated' };
+
+    const { data, error } = await supabase
+      .from('linked_accounts')
+      .update({ is_active: false })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .maybeSingle();
+
+    return { data, error: error?.message ?? null };
+  },
+
+  async setPrimaryAccount(id: string) {
+    const userId = await getCurrentUserId();
+    if (!userId) return { data: null, error: 'Not authenticated' };
+
+    const { error: clearError } = await supabase
+      .from('linked_accounts')
+      .update({ is_primary: false })
+      .eq('user_id', userId);
+
+    if (clearError) return { data: null, error: clearError.message };
+
+    const { data, error } = await supabase
+      .from('linked_accounts')
+      .update({ is_primary: true })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .maybeSingle();
+
+    return { data, error: error?.message ?? null };
+  },
+
   addLinkedAccount: ok,
-  removeLinkedAccount: ok,
-  setPrimaryAccount: ok,
 };
 
 export const NotificationService = {

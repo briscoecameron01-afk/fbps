@@ -4,9 +4,10 @@ import { colors, spacing, borderRadius, fontSizes, fontWeights } from '../theme'
 import { formatCurrency } from '../utils/calculations';
 import { useStore } from '../hooks/useStore';
 import { getLinkedAccounts, LinkedAccount } from '../services/plaid';
+import { createUnitTransfer } from '../services/unit';
 
 export function ManualContributionScreen({ navigation }: any) {
-  const { bills, buckets, makeManualContributionAsync, syncFromSupabase, isLoading } = useStore();
+  const { bills, buckets, syncFromSupabase } = useStore();
   const activeBills = bills.filter((bill) => bill.isActive);
   const [selectedBillId, setSelectedBillId] = useState(activeBills[0]?.id || '');
   const [amount, setAmount] = useState('');
@@ -14,6 +15,8 @@ export function ManualContributionScreen({ navigation }: any) {
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [showBillDropdown, setShowBillDropdown] = useState(false);
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!selectedBillId && activeBills[0]?.id) {
@@ -75,14 +78,48 @@ export function ManualContributionScreen({ navigation }: any) {
       return;
     }
 
-    const result = await makeManualContributionAsync(selectedBill.id, parsedAmount, accountLabel(selectedAccount));
-    if (result.error) {
-      Alert.alert('Contribution failed', result.error);
+    if (!authorized) {
+      Alert.alert('Authorization required', 'Confirm the ACH authorization before starting the transfer.');
       return;
     }
 
-    await syncFromSupabase();
-    navigation.goBack();
+    setSubmitting(true);
+    try {
+      const result = await createUnitTransfer({
+        linkedAccountId: selectedAccount.id,
+        amount: parsedAmount,
+        direction: 'to_unit',
+        billId: selectedBill.id,
+        description: 'Funding',
+      });
+
+      await syncFromSupabase();
+      Alert.alert(
+        'Contribution Started',
+        `Unit created the ACH transfer. Status: ${result.status || 'Pending'}.`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      if (
+        message.includes('UNIT_API_TOKEN') ||
+        message.includes('Unit customer id') ||
+        message.includes('Unit deposit account id')
+      ) {
+        Alert.alert(
+          'Open Unit Banking',
+          'This app is configured for Unit Ready-to-Launch. Move money in the embedded Unit banking hub, then return to track your bill funding.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Banking Hub', onPress: () => navigation.navigate('ReadyToLaunchBanking') },
+          ]
+        );
+      } else {
+        Alert.alert('Contribution failed', message);
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -160,7 +197,7 @@ export function ManualContributionScreen({ navigation }: any) {
           {showSourceDropdown && (
             <View style={styles.dropdownMenu}>
               {accounts.length === 0 ? (
-                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('LinkBank')}>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('LinkBank', { autoStart: true })}>
                   <Text style={styles.menuItemTextActive}>Link a bank account</Text>
                 </TouchableOpacity>
               ) : accounts.map((account) => (
@@ -196,10 +233,23 @@ export function ManualContributionScreen({ navigation }: any) {
             <Text style={styles.reviewValue}>{selectedAccount ? accountLabel(selectedAccount) : 'None selected'}</Text>
           </View>
         </View>
+
+        <TouchableOpacity
+          style={styles.authorizationRow}
+          activeOpacity={0.8}
+          onPress={() => setAuthorized((current) => !current)}
+        >
+          <View style={[styles.checkbox, authorized && styles.checkboxActive]}>
+            <Text style={styles.checkboxText}>{authorized ? 'x' : ''}</Text>
+          </View>
+          <Text style={styles.authorizationText}>
+            I authorize this ACH debit from the selected bank account into my Unit account for this bill contribution.
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
       <View style={styles.footer}>
-        <TouchableOpacity style={[styles.confirmButton, isLoading && styles.confirmButtonDisabled]} onPress={handleConfirm} disabled={isLoading}>
-          <Text style={styles.confirmButtonText}>{isLoading ? 'Saving...' : 'Confirm Contribution'}</Text>
+        <TouchableOpacity style={[styles.confirmButton, submitting && styles.confirmButtonDisabled]} onPress={handleConfirm} disabled={submitting}>
+          <Text style={styles.confirmButtonText}>{submitting ? 'Starting...' : 'Start Contribution'}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -230,6 +280,11 @@ const styles = StyleSheet.create({
   reviewItem: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.md, gap: spacing.md },
   reviewLabel: { fontSize: fontSizes.sm, color: colors.textSecondary },
   reviewValue: { fontSize: fontSizes.sm, fontWeight: fontWeights.semibold, color: colors.textPrimary, flex: 1, textAlign: 'right' },
+  authorizationRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, backgroundColor: colors.backgroundCard, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginTop: spacing.lg },
+  checkbox: { width: 22, height: 22, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  checkboxActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  checkboxText: { color: colors.background, fontSize: fontSizes.sm, fontWeight: fontWeights.bold },
+  authorizationText: { flex: 1, fontSize: fontSizes.sm, color: colors.textSecondary, lineHeight: 20 },
   footer: { paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border },
   confirmButton: { backgroundColor: colors.primary, borderRadius: borderRadius.lg, paddingVertical: spacing.md, alignItems: 'center' },
   confirmButtonDisabled: { opacity: 0.6 },

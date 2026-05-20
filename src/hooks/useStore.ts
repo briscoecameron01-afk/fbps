@@ -90,21 +90,39 @@ const mapContribution = (dbRow: any): Contribution => ({
   createdAt: dbRow.created_at,
 });
 
-const mapTransfer = (dbRow: any): Transfer => ({
-  id: dbRow.id,
-  billId: dbRow.bill_id,
-  billName: dbRow.bill_name,
-  amount: dbRow.amount,
-  date: dbRow.date,
-  status: dbRow.status,
-  fundingSource: dbRow.funding_source,
-});
+const mapTransferStatus = (status?: string): Transfer['status'] => {
+  const normalized = (status || '').toLowerCase();
+  if (normalized === 'sent' || normalized === 'completed' || normalized === 'success') return 'success';
+  if (['rejected', 'returned', 'canceled', 'cancelled', 'failed'].includes(normalized)) return 'failed';
+  return 'pending';
+};
+
+const mapTransfer = (dbRow: any): Transfer => {
+  const linkedAccount = dbRow.linked_accounts;
+  const accountMask = linkedAccount?.account_mask ? ` **** ${linkedAccount.account_mask}` : '';
+  const fundingSource = linkedAccount
+    ? `${linkedAccount.institution_name || 'Linked bank'} - ${linkedAccount.account_name || 'Account'}${accountMask}`
+    : dbRow.funding_source || 'Unit account';
+
+  return {
+    id: dbRow.id,
+    billId: dbRow.bill_id || '',
+    billName:
+      dbRow.bills?.name ||
+      dbRow.bill_name ||
+      (dbRow.direction === 'from_unit' ? 'Withdraw to bank' : 'Add money to Unit'),
+    amount: Number(dbRow.amount || 0),
+    date: dbRow.created_at || dbRow.date,
+    status: mapTransferStatus(dbRow.status),
+    fundingSource,
+  };
+};
 
 const mapLinkedAccount = (dbRow: any): LinkedAccount => ({
   id: dbRow.id,
-  bankName: dbRow.bank_name,
+  bankName: dbRow.bank_name || dbRow.institution_name || 'Unknown Bank',
   accountMask: dbRow.account_mask,
-  accountType: dbRow.account_type,
+  accountType: dbRow.account_subtype || dbRow.account_type,
   isPrimary: dbRow.is_primary,
   institutionId: dbRow.institution_id,
   createdAt: dbRow.created_at,
@@ -150,6 +168,12 @@ const mapProfile = (dbRow: any): UserProfile => {
 const getProfileDisplayName = (profile?: Partial<UserProfile> | null, fallback?: string) => {
   const fullName = `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim();
   return fullName || profile?.username || fallback || 'User';
+};
+
+const clearUnitReadyToLaunchSession = () => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem('unitCustomerToken');
+  window.localStorage.removeItem('unitVerifiedCustomerToken');
 };
 
 const EMPTY_USER_PROFILE: UserProfile = {
@@ -603,6 +627,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (supabase.auth.onAuthStateChange) {
         supabase.auth.onAuthStateChange((event: string, session: any) => {
           if (event === 'SIGNED_OUT') {
+            clearUnitReadyToLaunchSession();
             set({
               isAuthenticated: false,
               hasCompletedOnboarding: false,
@@ -1210,6 +1235,7 @@ export const useStore = create<AppState>((set, get) => ({
   login: () => set({ isAuthenticated: true }),
   logout: () => {
     AuthService?.signOut?.();
+    clearUnitReadyToLaunchSession();
     set({
       isAuthenticated: false,
       hasCompletedOnboarding: false,
@@ -1310,6 +1336,7 @@ export const useStore = create<AppState>((set, get) => ({
         await AuthService.signOut();
       }
 
+      clearUnitReadyToLaunchSession();
       set({
         isAuthenticated: false,
         hasCompletedOnboarding: false,

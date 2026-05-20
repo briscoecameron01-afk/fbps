@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, borderRadius, fontSizes, fontWeights, screenPadding } from '../theme';
 import {
   getLinkedAccounts,
@@ -32,11 +33,7 @@ export function PaymentMethodsScreen({ navigation }: PaymentMethodsScreenProps) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadAccounts();
-  }, []);
-
-  const loadAccounts = async () => {
+  const loadAccounts = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -47,7 +44,13 @@ export function PaymentMethodsScreen({ navigation }: PaymentMethodsScreenProps) 
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadAccounts();
+    }, [loadAccounts])
+  );
 
   const handleSetDefault = async (accountId: string) => {
     try {
@@ -133,7 +136,15 @@ export function PaymentMethodsScreen({ navigation }: PaymentMethodsScreenProps) 
               <ActivityIndicator color={colors.primary} />
             </View>
           ) : accounts.length > 0 ? (
-            <View style={styles.methodsList}>{accounts.map(renderAccount)}</View>
+            <View style={styles.methodsList}>
+              {accounts.map(renderAccount)}
+              <TouchableOpacity
+                style={styles.addBankButton}
+                onPress={() => navigation.navigate('LinkBank', { autoStart: true })}
+              >
+                <Text style={styles.addBankButtonText}>Connect Another Bank</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>No connected bank accounts</Text>
@@ -142,9 +153,9 @@ export function PaymentMethodsScreen({ navigation }: PaymentMethodsScreenProps) 
               </Text>
               <TouchableOpacity
                 style={styles.primaryButton}
-                onPress={error ? loadAccounts : () => navigation.navigate('LinkBank')}
+                onPress={error ? loadAccounts : () => navigation.navigate('LinkBank', { autoStart: true })}
               >
-                <Text style={styles.primaryButtonText}>{error ? 'Try Again' : 'Link Bank'}</Text>
+                <Text style={styles.primaryButtonText}>{error ? 'Try Again' : 'Connect Bank'}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -235,6 +246,20 @@ const styles = StyleSheet.create({
   actionButtonText: { fontSize: fontSizes.sm, fontWeight: fontWeights.semibold as any, color: colors.primary },
   removeButton: { borderColor: colors.error },
   removeButtonText: { fontSize: fontSizes.sm, fontWeight: fontWeights.semibold as any, color: colors.error },
+  addBankButton: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addBankButtonText: {
+    color: colors.primary,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold as any,
+  },
   loadingCard: {
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,

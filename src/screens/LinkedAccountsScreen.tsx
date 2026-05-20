@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components';
 import { colors, spacing, fontSizes, borderRadius } from '../theme';
 import {
@@ -42,11 +43,7 @@ export function LinkedAccountsScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadAccounts();
-  }, []);
-
-  const loadAccounts = async () => {
+  const loadAccounts = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -57,16 +54,22 @@ export function LinkedAccountsScreen({ navigation }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadAccounts();
+    }, [loadAccounts])
+  );
 
   const handleUnlink = (account: LinkedAccount) => {
     Alert.alert(
-      'Unlink Account',
-      `Are you sure you want to unlink ${account.account_name}${account.account_mask ? ` (••${account.account_mask})` : ''}?`,
+      'Remove Bank Account',
+      `Remove ${account.account_name}${account.account_mask ? ` (••${account.account_mask})` : ''}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Unlink',
+          text: 'Remove',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -122,8 +125,8 @@ export function LinkedAccountsScreen({ navigation }: Props) {
               <Button title="Try Again" onPress={loadAccounts} size="lg" />
             ) : (
               <Button
-                title="Link Your First Account"
-                onPress={() => navigation.navigate('LinkBank')}
+                title="Connect Your First Bank"
+                onPress={() => navigation.navigate('LinkBank', { autoStart: true })}
                 size="lg"
               />
             )}
@@ -167,7 +170,7 @@ export function LinkedAccountsScreen({ navigation }: Props) {
                     style={[styles.actionBtn, styles.actionBtnDanger]}
                     onPress={() => handleUnlink(account)}
                   >
-                    <Text style={styles.actionBtnTextDanger}>Unlink</Text>
+                    <Text style={styles.actionBtnTextDanger}>Remove</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -175,10 +178,10 @@ export function LinkedAccountsScreen({ navigation }: Props) {
 
             <TouchableOpacity
               style={styles.addAccountBtn}
-              onPress={() => navigation.navigate('LinkBank')}
+              onPress={() => navigation.navigate('LinkBank', { autoStart: true })}
             >
               <Text style={styles.addAccountPlus}>+</Text>
-              <Text style={styles.addAccountText}>Link Another Account</Text>
+              <Text style={styles.addAccountText}>Connect Another Bank</Text>
             </TouchableOpacity>
           </View>
         )}

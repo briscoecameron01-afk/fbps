@@ -39,6 +39,7 @@ import {
   PaymentReviewScreen,
   PaymentReceiptScreen,
   FundingHubScreen,
+  ReadyToLaunchBankingScreen,
   LinkBankScreen,
   BankListScreen,
   BankDetailsScreen,
@@ -46,6 +47,7 @@ import {
   AutoTransferScheduleScreen,
   ContributionsSummaryScreen,
   ManualContributionScreen,
+  UnitTransferScreen,
   TransferHistoryScreen,
   InsightsScreen,
   ExportReportsScreen,
@@ -92,13 +94,15 @@ export type RootStackParamList = {
   PayBill: { billId: string };
   PaymentReview: { billId: string; paymentMethod?: string; amount?: number };
   PaymentReceipt: { billId: string; paymentMethod?: string; amount?: number };
-  LinkBank: undefined;
+  ReadyToLaunchBanking: undefined;
+  LinkBank: { autoStart?: boolean; onboarding?: boolean } | undefined;
   BankList: undefined;
   BankDetails: undefined;
   LinkedAccounts: undefined;
   AutoTransferSchedule: undefined;
   ContributionsSummary: undefined;
   ManualContribution: undefined;
+  UnitTransfer: { linkedAccountId?: string; direction?: 'to_unit' | 'from_unit' } | undefined;
   TransferHistory: undefined;
   ExportReports: undefined;
   MyProfile: undefined;
@@ -163,6 +167,7 @@ function HomeStack() {
         component={LinkBankScreen}
         options={{ presentation: 'modal' }}
       />
+      <Stack.Screen name="LinkedAccounts" component={LinkedAccountsScreen} />
       <Stack.Screen name="BillDetail" component={BillDetailScreen} />
       <Stack.Screen name="BillBreakdown" component={BillBreakdownScreen} />
       <Stack.Screen name="DepositHistory" component={DepositHistoryScreen} />
@@ -208,6 +213,7 @@ function BillsStack() {
         component={LinkBankScreen}
         options={{ presentation: 'modal' }}
       />
+      <Stack.Screen name="LinkedAccounts" component={LinkedAccountsScreen} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
     </Stack.Navigator>
   );
@@ -222,6 +228,7 @@ function FundingStack() {
       }}
     >
       <Stack.Screen name="FundingHub" component={FundingHubScreen} />
+      <Stack.Screen name="ReadyToLaunchBanking" component={ReadyToLaunchBankingScreen} />
       <Stack.Screen
         name="LinkBank"
         component={LinkBankScreen}
@@ -233,6 +240,7 @@ function FundingStack() {
       <Stack.Screen name="AutoTransferSchedule" component={AutoTransferScheduleScreen} />
       <Stack.Screen name="ContributionsSummary" component={ContributionsSummaryScreen} />
       <Stack.Screen name="ManualContribution" component={ManualContributionScreen} />
+      <Stack.Screen name="UnitTransfer" component={UnitTransferScreen} />
       <Stack.Screen name="TransferHistory" component={TransferHistoryScreen} />
     </Stack.Navigator>
   );

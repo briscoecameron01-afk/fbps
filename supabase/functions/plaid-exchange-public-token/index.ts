@@ -38,6 +38,10 @@ Deno.serve(async (req) => {
       access_token: exchange.access_token,
     });
 
+    if (!accountsResponse.accounts?.length) {
+      throw new Error('Plaid returned no accounts for this institution');
+    }
+
     const rows = accountsResponse.accounts.map((account, index) => ({
       user_id: user.id,
       plaid_item_id: exchange.item_id,
@@ -60,13 +64,14 @@ Deno.serve(async (req) => {
       last_synced_at: new Date().toISOString(),
     }));
 
-    const { error } = await adminClient
+    const { data: savedAccounts, error } = await adminClient
       .from('linked_accounts')
-      .upsert(rows, { onConflict: 'plaid_account_id' });
+      .upsert(rows, { onConflict: 'plaid_account_id' })
+      .select('id, institution_name, account_name, account_mask, account_type, account_subtype, balance_current, balance_available, is_primary');
 
     if (error) throw error;
 
-    return jsonResponse({ success: true, accounts: rows.length });
+    return jsonResponse({ success: true, accounts: savedAccounts || [] });
   } catch (error) {
     return jsonResponse({ error: error.message }, 400);
   }

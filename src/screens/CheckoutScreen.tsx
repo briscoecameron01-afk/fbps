@@ -118,7 +118,7 @@ export function CheckoutScreen({ navigation, route }: CheckoutScreenProps) {
                   </Text>
                   <TouchableOpacity
                     style={styles.secondaryButton}
-                    onPress={() => navigation.navigate('LinkBank')}
+                    onPress={() => navigation.navigate('LinkBank', { autoStart: true })}
                   >
                     <Text style={styles.secondaryButtonText}>Link Bank</Text>
                   </TouchableOpacity>

@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform,
 } from 'react-native';
 import { colors, spacing, fontSizes, borderRadius } from '@/theme';
 import { Button } from '../components';
 import { createLinkToken, exchangePublicToken, openPlaidLinkWeb } from '../services/plaid';
+import { useStore } from '../hooks/useStore';
 
 // ── Plaid Link SDK ──────────────────────────────────────
 // Production: uses react-native-plaid-link-sdk (requires dev build)
@@ -31,6 +32,9 @@ export function LinkBankScreen({ navigation, route }: Props) {
   const [errorMessage, setErrorMessage] = useState('');
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const isOnboarding = route?.params?.onboarding ?? false;
+  const shouldAutoStart = route?.params?.autoStart ?? false;
+  const autoStartedRef = useRef(false);
+  const { syncFromSupabase } = useStore();
 
   // Pre-fetch link token when screen mounts for faster UX
   useEffect(() => {
@@ -48,12 +52,13 @@ export function LinkBankScreen({ navigation, route }: Props) {
   };
 
   const handleSuccess = useCallback(async () => {
+    await syncFromSupabase();
     if (isOnboarding) {
-      setTimeout(() => navigation.replace('Main'), 1500);
+      navigation.replace('Main');
     } else {
-      setTimeout(() => navigation.goBack(), 1500);
+      navigation.navigate('LinkedAccounts');
     }
-  }, [navigation, isOnboarding]);
+  }, [navigation, isOnboarding, syncFromSupabase]);
 
   // ── Real Plaid Link SDK flow ──────────────────────────
   const handleLinkWithSDK = useCallback(async () => {
@@ -78,9 +83,12 @@ export function LinkBankScreen({ navigation, route }: Props) {
         onSuccess: async (result: any) => {
           try {
             const { publicToken, metadata } = result;
-            await exchangePublicToken(publicToken, {
+            const exchange = await exchangePublicToken(publicToken, {
               institution: metadata?.institution,
             });
+            if (!exchange.accounts?.length) {
+              throw new Error('Plaid connected, but no accounts were saved. Please try again.');
+            }
             setState('success');
             handleSuccess();
           } catch (err: any) {
@@ -117,9 +125,12 @@ export function LinkBankScreen({ navigation, route }: Props) {
 
       setState('linking');
       const result = await openPlaidLinkWeb(token);
-      await exchangePublicToken(result.publicToken, {
+      const exchange = await exchangePublicToken(result.publicToken, {
         institution: result.metadata?.institution,
       });
+      if (!exchange.accounts?.length) {
+        throw new Error('Plaid connected, but no accounts were saved. Please try again.');
+      }
       setState('success');
       handleSuccess();
     } catch (err: any) {
@@ -160,6 +171,9 @@ export function LinkBankScreen({ navigation, route }: Props) {
                     },
                   }
                 );
+                if (!result.accounts?.length) {
+                  throw new Error('Plaid connected, but no accounts were saved. Please try again.');
+                }
                 setState('success');
                 handleSuccess();
               } catch (err: any) {
@@ -172,7 +186,7 @@ export function LinkBankScreen({ navigation, route }: Props) {
             text: 'Connect Bank of America',
             onPress: async () => {
               try {
-                await exchangePublicToken(
+                const result = await exchangePublicToken(
                   'public-sandbox-test-token',
                   {
                     institution: {
@@ -181,6 +195,9 @@ export function LinkBankScreen({ navigation, route }: Props) {
                     },
                   }
                 );
+                if (!result.accounts?.length) {
+                  throw new Error('Plaid connected, but no accounts were saved. Please try again.');
+                }
                 setState('success');
                 handleSuccess();
               } catch (err: any) {
@@ -209,6 +226,12 @@ export function LinkBankScreen({ navigation, route }: Props) {
       : PlaidLink
         ? handleLinkWithSDK
         : handleLinkSimulated;
+
+  useEffect(() => {
+    if (!shouldAutoStart || autoStartedRef.current || state !== 'idle') return;
+    autoStartedRef.current = true;
+    handleLinkBank();
+  }, [handleLinkBank, shouldAutoStart, state]);
 
   const handleSkip = () => {
     if (isOnboarding) {
@@ -323,7 +346,7 @@ export function LinkBankScreen({ navigation, route }: Props) {
       <View style={styles.actions}>
         {state === 'loading' || state === 'linking' ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.teal} />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>
               {state === 'loading' ? 'Preparing secure connection...' : 'Connecting to your bank...'}
             </Text>
@@ -372,7 +395,7 @@ export function LinkBankScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -385,12 +408,12 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   backBtn: {
-    color: colors.teal,
+    color: colors.primary,
     fontSize: fontSizes.md,
   },
   headerTitle: {
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.textPrimary,
     fontSize: fontSizes.lg,
   },
   content: {
@@ -403,7 +426,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: colors.tealBg,
+    backgroundColor: 'rgba(0, 217, 152, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing['2xl'],
@@ -412,7 +435,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8FFF5',
   },
   iconContainerError: {
-    backgroundColor: colors.coralBg,
+    backgroundColor: 'rgba(255, 71, 87, 0.15)',
   },
   iconEmoji: {
     fontSize: 44,
@@ -421,13 +444,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Georgia',
     fontSize: 28,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.md,
   },
   subtitle: {
     fontSize: fontSizes.md,
-    color: colors.mid,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing['2xl'],
@@ -460,14 +483,14 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: fontSizes.sm,
-    color: colors.mid,
+    color: colors.textSecondary,
   },
   banksSection: {
     alignItems: 'center',
   },
   banksLabel: {
     fontSize: fontSizes.xs,
-    color: colors.light,
+    color: colors.textMuted,
     marginBottom: spacing.md,
   },
   banksRow: {
@@ -480,13 +503,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.lightBg,
+    backgroundColor: colors.backgroundCardLight,
     borderWidth: 1,
     borderColor: colors.border,
   },
   bankChipText: {
     fontSize: fontSizes.xs,
-    color: colors.navy,
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   actions: {
@@ -499,7 +522,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   loadingText: {
-    color: colors.mid,
+    color: colors.textSecondary,
     fontSize: fontSizes.sm,
   },
   skipBtn: {
@@ -507,7 +530,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   skipText: {
-    color: colors.light,
+    color: colors.textMuted,
     fontSize: fontSizes.md,
   },
 });

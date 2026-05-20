@@ -28,6 +28,7 @@ export function SetNewPasswordScreen({ navigation }: SetNewPasswordScreenProps) 
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [sessionError, setSessionError] = useState('');
+  const [passwordUpdated, setPasswordUpdated] = useState(false);
 
   useEffect(() => {
     const checkRecoverySession = async () => {
@@ -66,25 +67,23 @@ export function SetNewPasswordScreen({ navigation }: SetNewPasswordScreenProps) 
         return;
       }
 
-      await clearPasswordRecoverySession();
-      if (typeof window !== 'undefined' && window.history?.replaceState) {
-        window.history.replaceState({}, '', '/');
-      }
-
       setLoading(false);
-      Alert.alert('Success', 'Password updated successfully. Please log in with your new password.', [
-        {
-          text: 'OK',
-          onPress: () => navigation.reset?.({
-            index: 0,
-            routes: [{ name: 'Login' }],
-          }) || navigation.navigate('Login'),
-        },
-      ]);
+      setPasswordUpdated(true);
     } catch (error) {
       setLoading(false);
       Alert.alert('Error', 'Failed to update password. Please try again.');
     }
+  };
+
+  const returnToLogin = async () => {
+    await clearPasswordRecoverySession();
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      window.history.replaceState({}, '', '/');
+    }
+    navigation.reset?.({
+      index: 0,
+      routes: [{ name: 'Login' }],
+    }) || navigation.navigate('Login');
   };
 
   if (checkingSession) {
@@ -125,6 +124,31 @@ export function SetNewPasswordScreen({ navigation }: SetNewPasswordScreenProps) 
           >
             <Text style={styles.secondaryButtonText}>Back to Login</Text>
           </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (passwordUpdated) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.centerState}>
+          <View style={styles.promptCard}>
+            <View style={styles.promptIcon}>
+              <Text style={styles.promptIconText}>✓</Text>
+            </View>
+            <Text style={styles.title}>Password Updated</Text>
+            <Text style={styles.subtitle}>
+              Your password was updated successfully. You can now log in with your new password.
+            </Text>
+            <TouchableOpacity
+              style={styles.updateButton}
+              onPress={returnToLogin}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.updateButtonText}>Back to Login</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -239,6 +263,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: screenPadding.horizontal,
     gap: spacing.lg,
+  },
+  promptCard: {
+    backgroundColor: colors.backgroundCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  promptIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  promptIconText: {
+    color: colors.background,
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold as any,
   },
   backButton: {
     width: 40,

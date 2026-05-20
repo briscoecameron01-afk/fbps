@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,15 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { colors, spacing, borderRadius, fontSizes, fontWeights } from '../theme';
+import { useFocusEffect } from '@react-navigation/native';
+import { colors, spacing, screenPadding, borderRadius, fontSizes, fontWeights } from '../theme';
 import { formatCurrency } from '../utils/calculations';
 import {
   getLinkedAccounts,
   refreshLinkedAccountBalances,
+  unlinkAccount,
   LinkedAccount,
 } from '../services/plaid';
 
@@ -24,13 +27,11 @@ export function FundingHubScreen({ navigation }: Props) {
   const [accounts, setAccounts] = useState<LinkedAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [balanceRefreshing, setBalanceRefreshing] = useState(false);
+  const [accountsError, setAccountsError] = useState('');
 
-  useEffect(() => {
-    loadConnectedAccounts();
-  }, []);
-
-  const loadConnectedAccounts = async () => {
+  const loadConnectedAccounts = useCallback(async () => {
     setAccountsLoading(true);
+    setAccountsError('');
     try {
       const linkedAccounts = await getLinkedAccounts();
       setAccounts(linkedAccounts);
@@ -45,11 +46,18 @@ export function FundingHubScreen({ navigation }: Props) {
         }
         setBalanceRefreshing(false);
       }
-    } catch {
+    } catch (error) {
       setAccounts([]);
+      setAccountsError(error instanceof Error ? error.message : 'Unable to load connected accounts.');
     }
     setAccountsLoading(false);
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadConnectedAccounts();
+    }, [loadConnectedAccounts])
+  );
 
   const formatBalance = (amount: number | null) => {
     if (typeof amount !== 'number') return 'Unavailable';
@@ -62,6 +70,35 @@ export function FundingHubScreen({ navigation }: Props) {
     return `${type.replace(/_/g, ' ')}${mask}`;
   };
 
+  const openBankingHub = () => {
+    navigation.navigate('ReadyToLaunchBanking');
+  };
+
+  const handleRemoveAccount = (account: LinkedAccount) => {
+    Alert.alert(
+      'Remove Bank Account',
+      `Remove ${account.account_name || 'this account'}${account.account_mask ? ` (••${account.account_mask})` : ''}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await unlinkAccount(account.id);
+              setAccounts((current) => current.filter((item) => item.id !== account.id));
+            } catch (error) {
+              Alert.alert(
+                'Unable to remove account',
+                error instanceof Error ? error.message : 'Please try again.'
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -71,19 +108,25 @@ export function FundingHubScreen({ navigation }: Props) {
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <View>
-              <Text style={styles.cardLabel}>Auto-transfer</Text>
-              <Text style={styles.cardValue}>Enabled</Text>
+            <View style={styles.cardTitleBlock}>
+              <Text style={styles.cardLabel}>Unit Banking</Text>
+              <Text style={styles.cardValue}>Ready-to-Launch</Text>
+              <Text style={styles.cardSubtext}>
+                Open Unit's embedded banking experience to onboard, hold funds, connect banks, and move money.
+              </Text>
             </View>
             <View style={styles.activeBadge}>
-              <Text style={styles.activeBadgeText}>Active</Text>
+              <Text style={styles.activeBadgeText}>Embedded</Text>
             </View>
           </View>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Next Scheduled Transfer</Text>
-          <Text style={styles.cardValue}>Mar 05 - $4.00</Text>
+          <View style={styles.unitActions}>
+            <TouchableOpacity
+              style={styles.unitActionButton}
+              onPress={openBankingHub}
+            >
+              <Text style={styles.unitActionButtonText}>Open Banking Hub</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.connectedSection}>
@@ -114,11 +157,11 @@ export function FundingHubScreen({ navigation }: Props) {
             <View style={styles.connectedEmptyCard}>
               <Text style={styles.connectedEmptyTitle}>No connected bank yet</Text>
               <Text style={styles.connectedEmptyText}>
-                Link a bank to see each connected account and balance here.
+                {accountsError || 'Link a bank to see each connected account and balance here.'}
               </Text>
               <TouchableOpacity
                 style={styles.linkInlineButton}
-                onPress={() => navigation.navigate('LinkBank')}
+                onPress={() => navigation.navigate('LinkBank', { autoStart: true })}
               >
                 <Text style={styles.linkInlineButtonText}>Link Bank</Text>
               </TouchableOpacity>
@@ -157,8 +200,30 @@ export function FundingHubScreen({ navigation }: Props) {
                       <Text style={styles.balanceValueSecondary}>{formatBalance(account.balance_available)}</Text>
                     </View>
                   </View>
+
+                  <View style={styles.accountActions}>
+                    <TouchableOpacity
+                      style={styles.accountActionButton}
+                      onPress={openBankingHub}
+                    >
+                      <Text style={styles.accountActionButtonText}>Manage in Unit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.removeAccountButton}
+                      onPress={() => handleRemoveAccount(account)}
+                    >
+                      <Text style={styles.removeAccountButtonText}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
+
+              <TouchableOpacity
+                style={styles.connectAnotherButton}
+                onPress={() => navigation.navigate('LinkBank', { autoStart: true })}
+              >
+                <Text style={styles.connectAnotherButtonText}>Connect Another Bank</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -166,16 +231,16 @@ export function FundingHubScreen({ navigation }: Props) {
         <View style={styles.buttonsSection}>
           <TouchableOpacity
             style={[styles.button, styles.outlineButton]}
-            onPress={() => navigation.navigate('ManualContribution')}
+            onPress={openBankingHub}
           >
-            <Text style={styles.outlineButtonText}>Manual Contribution</Text>
+            <Text style={styles.outlineButtonText}>Unit Banking</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.button, styles.outlineButton]}
-            onPress={() => navigation.navigate('LinkBank')}
+            onPress={() => navigation.navigate('LinkBank', { autoStart: true })}
           >
-            <Text style={styles.outlineButtonText}>Link Bank</Text>
+            <Text style={styles.outlineButtonText}>Connect Another Bank</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -196,7 +261,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scrollContent: {
-    padding: spacing.screenPadding,
+    paddingHorizontal: screenPadding.horizontal,
+    paddingVertical: screenPadding.vertical,
   },
   headerSection: {
     marginBottom: spacing.xl,
@@ -219,6 +285,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.md,
+  },
+  cardTitleBlock: {
+    flex: 1,
   },
   cardLabel: {
     fontSize: fontSizes.sm,
@@ -229,6 +299,37 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
+  },
+  cardSubtext: {
+    marginTop: spacing.xs,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+  },
+  cardError: {
+    fontSize: fontSizes.sm,
+    color: colors.error,
+    lineHeight: 20,
+  },
+  unitActions: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  unitActionButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  unitActionButtonText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.primary,
   },
   activeBadge: {
     backgroundColor: colors.primary,
@@ -401,6 +502,53 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.md,
     fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
+  },
+  accountActions: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  accountActionButton: {
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  accountActionButtonText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.primary,
+  },
+  removeAccountButton: {
+    borderWidth: 1,
+    borderColor: colors.error,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  removeAccountButtonText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.error,
+  },
+  connectAnotherButton: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  connectAnotherButtonText: {
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
+    color: colors.primary,
   },
   buttonsSection: {
     marginTop: spacing.xl,
