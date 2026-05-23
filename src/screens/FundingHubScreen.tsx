@@ -18,6 +18,8 @@ import {
   unlinkAccount,
   LinkedAccount,
 } from '../services/plaid';
+import { confirmDestructiveAction } from '../utils/confirmAction';
+import { ConfirmBankRemovalModal } from '../components/ConfirmBankRemovalModal';
 
 interface Props {
   navigation: any;
@@ -28,6 +30,8 @@ export function FundingHubScreen({ navigation }: Props) {
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [balanceRefreshing, setBalanceRefreshing] = useState(false);
   const [accountsError, setAccountsError] = useState('');
+  const [removingAccountId, setRemovingAccountId] = useState<string | null>(null);
+  const [accountPendingRemoval, setAccountPendingRemoval] = useState<LinkedAccount | null>(null);
 
   const loadConnectedAccounts = useCallback(async () => {
     setAccountsLoading(true);
@@ -74,7 +78,48 @@ export function FundingHubScreen({ navigation }: Props) {
     navigation.navigate('ReadyToLaunchBanking');
   };
 
-  const handleRemoveAccount = (account: LinkedAccount) => {
+  const confirmRemoveAccount = async () => {
+    if (!accountPendingRemoval) return;
+
+    setRemovingAccountId(accountPendingRemoval.id);
+    try {
+      await unlinkAccount(accountPendingRemoval.id);
+      setAccounts((current) => current.filter((item) => item.id !== accountPendingRemoval.id));
+      setAccountPendingRemoval(null);
+    } catch (error) {
+      Alert.alert(
+        'Unable to remove account',
+        error instanceof Error ? error.message : 'Please try again.'
+      );
+    } finally {
+      setRemovingAccountId(null);
+    }
+  };
+
+  const handleRemoveAccount = async (account: LinkedAccount) => {
+    const accountLabel = `${account.account_name || 'this account'}${account.account_mask ? ` (••${account.account_mask})` : ''}`;
+    const confirmed = await confirmDestructiveAction({
+      title: 'Remove Bank Account',
+      message: `Remove ${accountLabel}?`,
+      confirmText: 'Remove',
+    });
+
+    if (!confirmed) return;
+
+    setRemovingAccountId(account.id);
+    try {
+      await unlinkAccount(account.id);
+      setAccounts((current) => current.filter((item) => item.id !== account.id));
+    } catch (error) {
+      Alert.alert(
+        'Unable to remove account',
+        error instanceof Error ? error.message : 'Please try again.'
+      );
+    } finally {
+      setRemovingAccountId(null);
+    }
+
+    return;
     Alert.alert(
       'Remove Bank Account',
       `Remove ${account.account_name || 'this account'}${account.account_mask ? ` (••${account.account_mask})` : ''}?`,
@@ -168,7 +213,10 @@ export function FundingHubScreen({ navigation }: Props) {
             </View>
           ) : (
             <View style={styles.accountsList}>
-              {accounts.map((account) => (
+              {accounts.map((account) => {
+                const isRemoving = removingAccountId === account.id;
+
+                return (
                 <View key={account.id} style={styles.accountCard}>
                   <View style={styles.accountTopRow}>
                     <View style={styles.accountIcon}>
@@ -209,14 +257,18 @@ export function FundingHubScreen({ navigation }: Props) {
                       <Text style={styles.accountActionButtonText}>Manage in Unit</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={styles.removeAccountButton}
-                      onPress={() => handleRemoveAccount(account)}
+                      style={[styles.removeAccountButton, isRemoving && styles.disabledAction]}
+                      onPress={() => setAccountPendingRemoval(account)}
+                      disabled={!!removingAccountId}
                     >
-                      <Text style={styles.removeAccountButtonText}>Remove</Text>
+                      <Text style={styles.removeAccountButtonText}>
+                        {isRemoving ? 'Removing...' : 'Remove'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
-              ))}
+                );
+              })}
 
               <TouchableOpacity
                 style={styles.connectAnotherButton}
@@ -251,6 +303,13 @@ export function FundingHubScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <ConfirmBankRemovalModal
+        visible={!!accountPendingRemoval}
+        account={accountPendingRemoval}
+        loading={!!removingAccountId}
+        onCancel={() => setAccountPendingRemoval(null)}
+        onConfirm={confirmRemoveAccount}
+      />
     </SafeAreaView>
   );
 }
@@ -535,6 +594,9 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
     color: colors.error,
+  },
+  disabledAction: {
+    opacity: 0.5,
   },
   connectAnotherButton: {
     borderWidth: 1,

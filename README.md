@@ -135,3 +135,27 @@ npx supabase functions deploy unit-get-account
 npx supabase functions deploy unit-create-transfer
 npx supabase functions deploy unit-refresh-transfers
 ```
+
+## Basic HubSpot Contact Sync
+
+The app can create/update a HubSpot contact for the signed-in user. It only syncs basic CRM fields:
+
+- Email
+- First name
+- Last name
+- Phone number
+
+Create a HubSpot Private App with these scopes:
+
+- `crm.objects.contacts.read`
+- `crm.objects.contacts.write`
+
+Then add the token to Supabase and deploy:
+
+```bash
+npx supabase db push
+npx supabase secrets set HUBSPOT_PRIVATE_APP_TOKEN=your_private_app_token
+npx supabase functions deploy hubspot-sync-contact
+```
+
+HubSpot sync runs quietly after sign-in, onboarding completion, and profile edits. If HubSpot is not configured yet, the app keeps working normally.

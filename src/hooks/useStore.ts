@@ -16,6 +16,8 @@ import {
 let supabase: any = null;
 let AuthService: any = null;
 let DatabaseServices: any = null;
+let HubSpotService: any = null;
+let PlaidService: any = null;
 
 try {
   supabase = require('../services/supabase').supabase;
@@ -43,6 +45,18 @@ try {
   };
 } catch (e) {
   // Database services not available yet
+}
+
+try {
+  HubSpotService = require('../services/hubspot');
+} catch (e) {
+  // HubSpot service not available yet
+}
+
+try {
+  PlaidService = require('../services/plaid');
+} catch (e) {
+  // Plaid service not available yet
 }
 
 // ── Type Definition ────────────────────────────────────────────
@@ -174,6 +188,27 @@ const clearUnitReadyToLaunchSession = () => {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem('unitCustomerToken');
   window.localStorage.removeItem('unitVerifiedCustomerToken');
+};
+
+const syncHubSpotContactQuietly = async () => {
+  try {
+    await HubSpotService?.syncHubSpotContact?.();
+  } catch {
+    // HubSpot should never block the core app experience.
+  }
+};
+
+let lastLinkedAccountRefreshAt = 0;
+const refreshLinkedAccountsQuietly = async () => {
+  const now = Date.now();
+  if (now - lastLinkedAccountRefreshAt < 120000) return;
+  lastLinkedAccountRefreshAt = now;
+
+  try {
+    await PlaidService?.refreshLinkedAccountBalances?.();
+  } catch {
+    // Plaid refresh should not block login or local data sync.
+  }
 };
 
 const EMPTY_USER_PROFILE: UserProfile = {
@@ -477,6 +512,7 @@ interface AppState {
   // Auth
   isAuthenticated: boolean;
   hasCompletedOnboarding: boolean;
+  hasLoadedUserData: boolean;
   userName: string;
   supabaseUser: User | null;
 
@@ -572,6 +608,7 @@ export const useStore = create<AppState>((set, get) => ({
   // Initial state - Auth
   isAuthenticated: false,
   hasCompletedOnboarding: false,
+  hasLoadedUserData: false,
   userName: '',
   supabaseUser: null,
 
@@ -616,9 +653,12 @@ export const useStore = create<AppState>((set, get) => ({
       if (session?.user) {
         set({
           isAuthenticated: true,
+          hasLoadedUserData: false,
           supabaseUser: session.user,
         });
+        await refreshLinkedAccountsQuietly();
         await get().syncFromSupabase();
+        syncHubSpotContactQuietly();
       }
 
       set({ isLoading: false, isInitialized: true });
@@ -631,12 +671,20 @@ export const useStore = create<AppState>((set, get) => ({
             set({
               isAuthenticated: false,
               hasCompletedOnboarding: false,
+              hasLoadedUserData: false,
               supabaseUser: null,
               authError: null,
             });
           } else if (event === 'SIGNED_IN' && session?.user) {
-            set({ isAuthenticated: true, supabaseUser: session.user });
-            get().syncFromSupabase();
+            set({
+              isAuthenticated: true,
+              hasLoadedUserData: false,
+              supabaseUser: session.user,
+              authError: null,
+            });
+            refreshLinkedAccountsQuietly()
+              .then(() => get().syncFromSupabase())
+              .finally(syncHubSpotContactQuietly);
           }
         });
       }
@@ -648,7 +696,10 @@ export const useStore = create<AppState>((set, get) => ({
   syncFromSupabase: async () => {
     try {
       if (!DatabaseServices) {
-        set({ dataError: 'Database services not available' });
+        set({
+          dataError: 'Database services not available',
+          hasLoadedUserData: get().isAuthenticated ? true : get().hasLoadedUserData,
+        });
         return;
       }
 
@@ -676,7 +727,10 @@ export const useStore = create<AppState>((set, get) => ({
         ]
       );
 
-      const updates: Partial<AppState> = {};
+      const updates: Partial<AppState> = {
+        hasLoadedUserData: get().isAuthenticated ? true : get().hasLoadedUserData,
+        dataError: null,
+      };
 
       if (profileRes.data) {
         const profile = mapProfile(profileRes.data);
@@ -697,7 +751,10 @@ export const useStore = create<AppState>((set, get) => ({
 
       set(updates);
     } catch (err) {
-      set({ dataError: 'Failed to sync data from Supabase' });
+      set({
+        dataError: 'Failed to sync data from Supabase',
+        hasLoadedUserData: get().isAuthenticated ? true : get().hasLoadedUserData,
+      });
     }
   },
 
@@ -1180,6 +1237,7 @@ export const useStore = create<AppState>((set, get) => ({
           userName: getProfileDisplayName({ ...state.userProfile, ...updates }, state.userName),
           isLoading: false,
         }));
+        syncHubSpotContactQuietly();
         return {};
       }
 
@@ -1194,6 +1252,7 @@ export const useStore = create<AppState>((set, get) => ({
         userName: getProfileDisplayName({ ...state.userProfile, ...updates }, state.userName),
         isLoading: false,
       }));
+      syncHubSpotContactQuietly();
       return {};
     } catch (err: any) {
       const errMsg = err?.message || 'Failed to update profile';
@@ -1232,13 +1291,14 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   // ── Auth Actions (Sync) ────────────────────────────────────────
-  login: () => set({ isAuthenticated: true }),
+  login: () => set({ isAuthenticated: true, hasLoadedUserData: true }),
   logout: () => {
     AuthService?.signOut?.();
     clearUnitReadyToLaunchSession();
     set({
       isAuthenticated: false,
       hasCompletedOnboarding: false,
+      hasLoadedUserData: false,
       supabaseUser: null,
       authError: null,
       isLoading: false,
@@ -1247,11 +1307,13 @@ export const useStore = create<AppState>((set, get) => ({
   completeOnboarding: () => {
     set((state) => ({
       hasCompletedOnboarding: true,
+      hasLoadedUserData: true,
       isAuthenticated: true,
       userProfile: { ...state.userProfile, hasCompletedOnboarding: true },
     }));
 
     DatabaseServices?.ProfileService?.updateProfile?.({ hasCompletedOnboarding: true });
+    syncHubSpotContactQuietly();
   },
 
   // ── Auth Actions (Async) ────────────────────────────────────────
@@ -1278,6 +1340,7 @@ export const useStore = create<AppState>((set, get) => ({
 
       set({
         isAuthenticated: !!session,
+        hasLoadedUserData: !!session,
         supabaseUser: user,
         userName: fullName,
         userProfile: {
@@ -1290,6 +1353,7 @@ export const useStore = create<AppState>((set, get) => ({
         },
         isLoading: false,
       });
+      if (session) syncHubSpotContactQuietly();
       return { needsEmailConfirmation };
     } catch (err: any) {
       const errMsg = err?.message || 'Sign up failed';
@@ -1314,13 +1378,16 @@ export const useStore = create<AppState>((set, get) => ({
 
       set({
         isAuthenticated: true,
+        hasLoadedUserData: false,
         supabaseUser: user,
         userName: user?.user_metadata?.full_name || user?.user_metadata?.username || user?.email || get().userName,
-        isLoading: false,
       });
 
       // Load user data from Supabase
+      await refreshLinkedAccountsQuietly();
       await get().syncFromSupabase();
+      set({ isLoading: false });
+      syncHubSpotContactQuietly();
       return {};
     } catch (err: any) {
       const errMsg = err?.message || 'Sign in failed';
@@ -1340,6 +1407,7 @@ export const useStore = create<AppState>((set, get) => ({
       set({
         isAuthenticated: false,
         hasCompletedOnboarding: false,
+        hasLoadedUserData: false,
         supabaseUser: null,
         authError: null,
         isLoading: false,
@@ -1411,11 +1479,14 @@ export const useStore = create<AppState>((set, get) => ({
 
       set({
         isAuthenticated: true,
+        hasLoadedUserData: false,
         supabaseUser: user,
-        isLoading: false,
       });
 
+      await refreshLinkedAccountsQuietly();
       await get().syncFromSupabase();
+      set({ isLoading: false });
+      syncHubSpotContactQuietly();
       return {};
     } catch (err: any) {
       const errMsg = err?.message || 'OTP verification failed';

@@ -18,14 +18,14 @@ function LoadingScreen() {
 }
 
 export default function App() {
-  const { initialize, isInitialized, isLoading } = useStore();
+  const { initialize, isInitialized, isLoading, isAuthenticated, hasLoadedUserData } = useStore();
 
   useEffect(() => {
     setupWebAppDocument();
     initialize();
   }, []);
 
-  if (!isInitialized && isLoading) {
+  if ((!isInitialized && isLoading) || (isAuthenticated && !hasLoadedUserData)) {
     return (
       <>
         <StatusBar style="light" />

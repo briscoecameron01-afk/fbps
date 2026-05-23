@@ -63,7 +63,7 @@ const sections: SettingSection[] = [
       { icon: 'user', label: 'Edit Profile', action: 'navigate', screen: 'EditProfile' },
       { icon: 'briefcase', label: 'Linked Accounts', action: 'navigate', screen: 'LinkedAccounts' },
       { icon: 'credit-card', label: 'Payment Methods', action: 'navigate', screen: 'PaymentMethods' },
-      { icon: 'star', label: 'Upgrade to Premium', action: 'navigate', screen: 'PlansComparison', accent: true },
+      { icon: 'percent', label: 'Transaction Fee', action: 'navigate', screen: 'PlansComparison', accent: true },
     ],
   },
   {

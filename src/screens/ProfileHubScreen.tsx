@@ -6,7 +6,7 @@ import { useStore } from '../hooks/useStore';
 const MENU_ITEMS = [
   { id: '1', label: 'My Profile', icon: '👤', screen: 'MyProfile' },
   { id: '2', label: 'Rewards', icon: '🏆', screen: 'Rewards' },
-  { id: '3', label: 'Subscription', icon: '👑', screen: 'Subscription' },
+  { id: '3', label: 'Pricing', icon: '%', screen: 'Subscription' },
   { id: '4', label: 'Notification', icon: '🔔', screen: 'NotificationSettings' },
   { id: '5', label: 'Security', icon: '🔒', screen: 'Security' },
   { id: '6', label: 'Settings', icon: '⚙️', screen: 'Settings' },

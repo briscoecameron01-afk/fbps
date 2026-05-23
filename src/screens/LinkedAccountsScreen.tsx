@@ -17,6 +17,8 @@ import {
   setPrimaryAccount,
   unlinkAccount,
 } from '../services/plaid';
+import { confirmDestructiveAction } from '../utils/confirmAction';
+import { ConfirmBankRemovalModal } from '../components/ConfirmBankRemovalModal';
 
 interface Props {
   navigation: any;
@@ -42,6 +44,8 @@ export function LinkedAccountsScreen({ navigation }: Props) {
   const [accounts, setAccounts] = useState<LinkedAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [removingAccountId, setRemovingAccountId] = useState<string | null>(null);
+  const [accountPendingRemoval, setAccountPendingRemoval] = useState<LinkedAccount | null>(null);
 
   const loadAccounts = useCallback(async () => {
     setLoading(true);
@@ -62,7 +66,30 @@ export function LinkedAccountsScreen({ navigation }: Props) {
     }, [loadAccounts])
   );
 
-  const handleUnlink = (account: LinkedAccount) => {
+  const handleUnlink = async (account: LinkedAccount) => {
+    const accountLabel = `${account.account_name || 'this account'}${account.account_mask ? ` (••${account.account_mask})` : ''}`;
+    const confirmed = await confirmDestructiveAction({
+      title: 'Remove Bank Account',
+      message: `Remove ${accountLabel}?`,
+      confirmText: 'Remove',
+    });
+
+    if (!confirmed) return;
+
+    setRemovingAccountId(account.id);
+    try {
+      await unlinkAccount(account.id);
+      setAccounts((prev) => prev.filter((a) => a.id !== account.id));
+    } catch (err) {
+      Alert.alert(
+        'Unable to unlink account',
+        err instanceof Error ? err.message : 'Please try again.'
+      );
+    } finally {
+      setRemovingAccountId(null);
+    }
+
+    return;
     Alert.alert(
       'Remove Bank Account',
       `Remove ${account.account_name}${account.account_mask ? ` (••${account.account_mask})` : ''}?`,
@@ -96,6 +123,24 @@ export function LinkedAccountsScreen({ navigation }: Props) {
         'Unable to update primary account',
         err instanceof Error ? err.message : 'Please try again.'
       );
+    }
+  };
+
+  const confirmRemoveAccount = async () => {
+    if (!accountPendingRemoval) return;
+
+    setRemovingAccountId(accountPendingRemoval.id);
+    try {
+      await unlinkAccount(accountPendingRemoval.id);
+      setAccounts((prev) => prev.filter((a) => a.id !== accountPendingRemoval.id));
+      setAccountPendingRemoval(null);
+    } catch (err) {
+      Alert.alert(
+        'Unable to unlink account',
+        err instanceof Error ? err.message : 'Please try again.'
+      );
+    } finally {
+      setRemovingAccountId(null);
     }
   };
 
@@ -133,7 +178,10 @@ export function LinkedAccountsScreen({ navigation }: Props) {
           </View>
         ) : (
           <View style={styles.list}>
-            {accounts.map((account) => (
+            {accounts.map((account) => {
+              const isRemoving = removingAccountId === account.id;
+
+              return (
               <View key={account.id} style={styles.accountCard}>
                 <View style={styles.nameRow}>
                   <View style={styles.accountIcon}>
@@ -167,14 +215,18 @@ export function LinkedAccountsScreen({ navigation }: Props) {
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
-                    style={[styles.actionBtn, styles.actionBtnDanger]}
-                    onPress={() => handleUnlink(account)}
+                    style={[styles.actionBtn, styles.actionBtnDanger, isRemoving && styles.disabledAction]}
+                    onPress={() => setAccountPendingRemoval(account)}
+                    disabled={!!removingAccountId}
                   >
-                    <Text style={styles.actionBtnTextDanger}>Remove</Text>
+                    <Text style={styles.actionBtnTextDanger}>
+                      {isRemoving ? 'Removing...' : 'Remove'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
-            ))}
+              );
+            })}
 
             <TouchableOpacity
               style={styles.addAccountBtn}
@@ -195,6 +247,13 @@ export function LinkedAccountsScreen({ navigation }: Props) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      <ConfirmBankRemovalModal
+        visible={!!accountPendingRemoval}
+        account={accountPendingRemoval}
+        loading={!!removingAccountId}
+        onCancel={() => setAccountPendingRemoval(null)}
+        onConfirm={confirmRemoveAccount}
+      />
     </View>
   );
 }
@@ -284,6 +343,7 @@ const styles = StyleSheet.create({
   actionBtnText: { fontSize: fontSizes.xs, fontWeight: '600', color: colors.primary },
   actionBtnDanger: { borderColor: colors.error },
   actionBtnTextDanger: { fontSize: fontSizes.xs, fontWeight: '600', color: colors.error },
+  disabledAction: { opacity: 0.5 },
   addAccountBtn: {
     flexDirection: 'row',
     alignItems: 'center',

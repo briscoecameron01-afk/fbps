@@ -15,12 +15,7 @@ interface PlansComparisonScreenProps {
 
 export function PlansComparisonScreen({ navigation }: PlansComparisonScreenProps) {
   const handleSelectPremium = () => {
-    navigation.navigate('Checkout', {
-      type: 'subscription',
-      planName: 'Premium Plan',
-      amount: 9.99,
-      priceId: 'premium_monthly',
-    });
+    navigation.navigate('Subscription');
   };
 
   const comparisonData = [
@@ -95,7 +90,7 @@ export function PlansComparisonScreen({ navigation }: PlansComparisonScreenProps
               <Text style={styles.headerText}>Freemium</Text>
             </View>
             <View style={styles.planColumn}>
-              <Text style={styles.headerText}>Premium</Text>
+              <Text style={styles.headerText}>1.5% Fee</Text>
             </View>
           </View>
 
@@ -173,29 +168,29 @@ export function PlansComparisonScreen({ navigation }: PlansComparisonScreenProps
             <Text style={styles.planCardDesc}>Perfect to get started</Text>
           </View>
 
-          {/* Premium Plan */}
+          {/* Transaction Fee Plan */}
           <View style={[styles.planCard, styles.premiumCard]}>
             <View style={styles.premiumBadge}>
               <Text style={styles.premiumBadgeText}>👑</Text>
             </View>
-            <Text style={styles.planCardTitle}>Premium</Text>
-            <Text style={styles.planCardPrice}>$9.99</Text>
-            <Text style={styles.planCardPricePeriod}>/month</Text>
-            <Text style={styles.planCardDesc}>Unlock all features</Text>
+            <Text style={styles.planCardTitle}>Transaction Fee</Text>
+            <Text style={styles.planCardPrice}>1.5%</Text>
+            <Text style={styles.planCardPricePeriod}>per transaction</Text>
+            <Text style={styles.planCardDesc}>No monthly subscription</Text>
           </View>
         </View>
 
         {/* CTA Section */}
         <View style={styles.ctaSection}>
-          <Text style={styles.ctaTitle}>Ready to Upgrade?</Text>
+          <Text style={styles.ctaTitle}>Simple Usage-Based Pricing</Text>
           <Text style={styles.ctaDesc}>
-            Get unlimited bill tracking, advanced analytics, and automatic bank transfers
+            No monthly price. Fractional charges a 1.5% fee only when a transaction is processed.
           </Text>
           <TouchableOpacity
             style={styles.selectButton}
             onPress={handleSelectPremium}
           >
-            <Text style={styles.selectButtonText}>Select Premium</Text>
+            <Text style={styles.selectButtonText}>View Fee Details</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

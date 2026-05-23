@@ -85,6 +85,7 @@ export function LinkBankScreen({ navigation, route }: Props) {
             const { publicToken, metadata } = result;
             const exchange = await exchangePublicToken(publicToken, {
               institution: metadata?.institution,
+              accounts: metadata?.accounts,
             });
             if (!exchange.accounts?.length) {
               throw new Error('Plaid connected, but no accounts were saved. Please try again.');
@@ -127,6 +128,7 @@ export function LinkBankScreen({ navigation, route }: Props) {
       const result = await openPlaidLinkWeb(token);
       const exchange = await exchangePublicToken(result.publicToken, {
         institution: result.metadata?.institution,
+        accounts: result.metadata?.accounts,
       });
       if (!exchange.accounts?.length) {
         throw new Error('Plaid connected, but no accounts were saved. Please try again.');

@@ -42,6 +42,7 @@
     "react-native-svg": "~15.8.0",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "~0.19.13",
+    "supabase": "^2.101.0",
     "vercel": "54.2.0",
     "zustand": "^5.0.0"
   },

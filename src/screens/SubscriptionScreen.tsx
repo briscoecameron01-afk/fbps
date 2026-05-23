@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { colors, spacing, borderRadius, fontSizes, fontWeights } from '../theme';
 
-const FEATURES = ['3 bills tracked', 'Basic dashboard analytics', 'No bank automation'];
+const FEATURES = ['No monthly subscription', 'Only pay when money moves', '1.5% transaction fee'];
 
 export function SubscriptionScreen({ navigation }: any) {
   return (
@@ -11,7 +11,7 @@ export function SubscriptionScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backBtn}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Subscription Overview</Text>
+        <Text style={styles.headerTitle}>Pricing Overview</Text>
         <View style={{ width: 50 }} />
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
@@ -19,15 +19,15 @@ export function SubscriptionScreen({ navigation }: any) {
           <View style={styles.crownIcon}>
             <Text style={styles.crownText}>👑</Text>
           </View>
-          <Text style={styles.currentPlanLabel}>Current Plan</Text>
-          <Text style={styles.currentPlanName}>Freemium</Text>
+          <Text style={styles.currentPlanLabel}>Current Pricing</Text>
+          <Text style={styles.currentPlanName}>Transaction Fee</Text>
         </View>
         <View style={styles.priceCard}>
           <View>
-            <Text style={styles.priceAmount}>$70.50</Text>
-            <Text style={styles.pricePeriod}>Per Month</Text>
+            <Text style={styles.priceAmount}>1.5%</Text>
+            <Text style={styles.pricePeriod}>Per Transaction</Text>
           </View>
-          <Text style={styles.pricePlanType}>Monthly plan</Text>
+          <Text style={styles.pricePlanType}>No monthly fee</Text>
         </View>
         <View style={styles.featuresSection}>
           <Text style={styles.featuresTitle}>Features Included</Text>
@@ -39,13 +39,13 @@ export function SubscriptionScreen({ navigation }: any) {
           ))}
         </View>
         <View style={styles.comparisonCard}>
-          <Text style={styles.comparisonTitle}>Upgrade to Premium</Text>
-          <Text style={styles.comparisonDesc}>Get access to unlimited bills, advanced analytics, and automatic bank transfers.</Text>
+          <Text style={styles.comparisonTitle}>Simple Transaction Pricing</Text>
+          <Text style={styles.comparisonDesc}>Fractional charges a 1.5% fee only when a transaction is processed.</Text>
         </View>
       </ScrollView>
       <View style={styles.footer}>
         <TouchableOpacity style={styles.upgradeButton}>
-          <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
+          <Text style={styles.upgradeButtonText}>View Fee Details</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
