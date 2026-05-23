@@ -3,30 +3,21 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FBPS | Fractional Bill Pay - Break Your Bills Into Bite-Sized Payments</title>
+    <title>Fractional Bill Pay — Break Your Bills Into Bite-Sized Payments</title>
     <meta name="description" content="Fractional breaks your monthly expenses into daily, weekly, or biweekly micro-contributions. Only a 1.5% transaction fee. No monthly subscriptions." />
-    <meta property="og:site_name" content="FBPS | Fractional Bill Pay" />
-    <meta property="og:title" content="FBPS | Fractional Bill Pay - Break Your Bills Into Bite-Sized Payments" />
+    <meta property="og:site_name" content="Fractional Bill Pay" />
+    <meta property="og:title" content="Fractional Bill Pay — Break Your Bills Into Bite-Sized Payments" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.fbpsapp.com" />
     <meta property="twitter:card" content="summary" />
-    <meta property="twitter:title" content="FBPS | Fractional Bill Pay" />
+    <meta property="twitter:title" content="Fractional Bill Pay" />
     <meta property="twitter:url" content="https://www.fbpsapp.com" />
     <link rel="canonical" href="https://www.fbpsapp.com" />
-    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="favicon.svg" />
-    <meta name="application-name" content="FBPS" />
-    <meta name="theme-color" content="#0A1628" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#F7FAFC" media="(prefers-color-scheme: light)" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            color-scheme: dark;
             --bg: #0A1628;
             --bg-light: #0E1F38;
             --bg-card: #111E33;
@@ -34,43 +25,13 @@
             --primary: #00D998;
             --primary-dark: #00C48B;
             --secondary: #00B4D8;
-            --on-primary: #061A13;
             --text: #FFFFFF;
             --text-secondary: #94A3B8;
-            --text-muted: #7A8EA6;
+            --text-muted: #64748B;
             --border: #1C2E4A;
             --border-light: #243B5C;
             --error: #FF4757;
             --gold: #FFB800;
-            --nav-bg: rgba(10, 22, 40, 0.92);
-            --page-shadow: rgba(0,0,0,0.4);
-            --accent-soft: rgba(0, 217, 152, 0.12);
-            --accent-border: rgba(0, 217, 152, 0.28);
-        }
-
-        @media (prefers-color-scheme: light) {
-            :root {
-                color-scheme: light;
-                --bg: #F7FAFC;
-                --bg-light: #EDF5F4;
-                --bg-card: #FFFFFF;
-                --bg-card-light: #EEF4F7;
-                --primary: #007A5A;
-                --primary-dark: #006B4D;
-                --secondary: #006E8F;
-                --on-primary: #FFFFFF;
-                --text: #102033;
-                --text-secondary: #334155;
-                --text-muted: #5B6778;
-                --border: #D5E0EA;
-                --border-light: #AFC0D0;
-                --error: #C92F43;
-                --gold: #9A6500;
-                --nav-bg: rgba(255, 255, 255, 0.94);
-                --page-shadow: rgba(15, 23, 42, 0.16);
-                --accent-soft: rgba(0, 122, 90, 0.10);
-                --accent-border: rgba(0, 122, 90, 0.24);
-            }
         }
 
         html { scroll-behavior: smooth; }
@@ -81,28 +42,6 @@
             color: var(--text);
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
-        }
-
-        .fbps-site {
-            width: 100%;
-            min-height: 100vh;
-            margin: 0;
-            background: var(--bg) !important;
-            color: var(--text) !important;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-            font-size: 16px;
-            line-height: 1.6;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .fbps-site,
-        .fbps-site * {
-            box-sizing: border-box;
-        }
-
-        .fbps-site :where(h1, h2, h3, h4, p, a, button, input, li, span, div) {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         }
 
         a { color: inherit; text-decoration: none; }
@@ -120,7 +59,7 @@
             left: 0;
             right: 0;
             z-index: 100;
-            background: var(--nav-bg);
+            background: rgba(10, 22, 40, 0.85);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
         }
@@ -141,39 +80,11 @@
             color: var(--text);
         }
 
-        .brand-mark {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
+        .nav-logo .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
             background: var(--primary);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--on-primary);
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: 20px;
-            font-weight: 900;
-            line-height: 1;
-        }
-
-        .brand-name {
-            display: inline-flex;
-            flex-direction: column;
-            line-height: 1.05;
-        }
-
-        .brand-title {
-            font-size: 20px;
-            font-weight: 900;
-            color: var(--text);
-        }
-
-        .brand-subtitle {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-secondary);
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
         }
 
         .nav-links {
@@ -194,7 +105,7 @@
 
         .nav-cta {
             background: var(--primary) !important;
-            color: var(--on-primary) !important;
+            color: var(--bg) !important;
             padding: 10px 20px;
             border-radius: 10px;
             font-weight: 700 !important;
@@ -203,19 +114,6 @@
         }
 
         .nav-cta:hover { background: var(--primary-dark) !important; }
-
-        .nav-app {
-            border: 1px solid var(--border-light);
-            border-radius: 10px;
-            padding: 10px 16px;
-            color: var(--text) !important;
-            font-weight: 700 !important;
-        }
-
-        .nav-app:hover {
-            border-color: var(--primary);
-            color: var(--primary) !important;
-        }
 
         .mobile-menu-btn {
             display: none;
@@ -286,56 +184,39 @@
             margin-bottom: 60px;
         }
 
-        .fbps-btn {
-            display: inline-flex !important;
+        .btn-primary {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
             gap: 8px;
             padding: 16px 32px;
+            background: var(--primary);
+            color: var(--bg);
+            border: none;
             border-radius: 12px;
-            font-size: 16px !important;
+            font-size: 16px;
             font-weight: 700;
-            line-height: 1.2;
-            text-align: center;
-            text-decoration: none !important;
-            white-space: nowrap;
             cursor: pointer;
             transition: all 0.2s;
-            opacity: 1 !important;
-            visibility: visible !important;
-            text-indent: 0 !important;
-            text-shadow: none !important;
         }
 
-        .fbps-btn-primary {
-            background: var(--primary);
-            color: var(--on-primary) !important;
-            -webkit-text-fill-color: var(--on-primary) !important;
-            border: none;
-        }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
 
-        .fbps-btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
-
-        .fbps-btn-secondary {
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 32px;
             background: transparent;
-            color: var(--text) !important;
-            -webkit-text-fill-color: var(--text) !important;
+            color: var(--text);
             border: 1px solid var(--border-light);
+            border-radius: 12px;
+            font-size: 16px;
             font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .fbps-btn-secondary:hover {
-            border-color: var(--primary);
-            color: var(--primary) !important;
-            -webkit-text-fill-color: var(--primary) !important;
-        }
-
-        .fbps-btn *,
-        .fbps-btn::before,
-        .fbps-btn::after {
-            color: inherit !important;
-            -webkit-text-fill-color: inherit !important;
-        }
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
 
         .hero-stats {
             display: flex;
@@ -373,7 +254,7 @@
             border-radius: 32px;
             border: 2px solid var(--border-light);
             padding: 20px;
-            box-shadow: 0 40px 80px var(--page-shadow);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.4);
             position: relative;
         }
 
@@ -596,7 +477,7 @@
             height: 48px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: var(--on-primary);
+            color: var(--bg);
             font-size: 20px;
             font-weight: 800;
             display: flex;
@@ -830,7 +711,7 @@
             width: 100%;
             padding: 16px;
             background: var(--primary);
-            color: var(--on-primary);
+            color: var(--bg);
             border: none;
             border-radius: 12px;
             font-size: 16px;
@@ -950,7 +831,7 @@
         .cta-form button {
             padding: 16px 28px;
             background: var(--primary);
-            color: var(--on-primary);
+            color: var(--bg);
             border: none;
             border-radius: 12px;
             font-size: 15px;
@@ -961,10 +842,6 @@
         }
 
         .cta-form button:hover { background: var(--primary-dark); }
-
-        .fbps-app-download-cta {
-            margin: 8px auto 20px;
-        }
 
         .cta-note {
             font-size: 13px;
@@ -985,13 +862,9 @@
         }
 
         .footer-brand .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
             font-size: 20px;
             font-weight: 800;
             margin-bottom: 12px;
-            color: var(--text);
         }
 
         .footer-brand p {
@@ -1033,28 +906,6 @@
         @media (max-width: 768px) {
             .nav-links { display: none; }
             .mobile-menu-btn { display: block; }
-            nav .container { position: relative; }
-
-            .nav-links {
-                position: absolute;
-                top: 72px;
-                left: 24px;
-                right: 24px;
-                flex-direction: column;
-                align-items: stretch;
-                gap: 10px;
-                padding: 16px;
-                background: var(--bg-card);
-                border: 1px solid var(--border);
-                border-radius: 16px;
-                box-shadow: 0 24px 60px var(--page-shadow);
-            }
-
-            .nav-links a {
-                display: block;
-                text-align: center;
-                padding: 10px 12px;
-            }
 
             .comparison {
                 grid-template-columns: 1fr;
@@ -1073,150 +924,25 @@
 
             .pricing-card { padding: 36px 24px; }
         }
-        /* Squarespace embed hardening */
-        .fbps-site nav,
-        .fbps-site section,
-        .fbps-site footer {
-            color: var(--text) !important;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        }
-
-        .fbps-site h1,
-        .fbps-site h2,
-        .fbps-site h3,
-        .fbps-site h4,
-        .fbps-site .section-title,
-        .fbps-site .pricing-rate,
-        .fbps-site .phone-name,
-        .fbps-site .phone-status-bar,
-        .fbps-site .phone-bill-name,
-        .fbps-site .phone-bill-price,
-        .fbps-site .faq-question span:not(.icon),
-        .fbps-site .footer-brand .logo {
-            color: var(--text) !important;
-            -webkit-text-fill-color: var(--text) !important;
-        }
-
-        .fbps-site p,
-        .fbps-site .hero p,
-        .fbps-site .section-subtitle,
-        .fbps-site .phone-greeting,
-        .fbps-site .phone-balance-label,
-        .fbps-site .phone-bill-due,
-        .fbps-site .partners-label,
-        .fbps-site .partners-logos span,
-        .fbps-site .problem-card .stat-desc,
-        .fbps-site .step p,
-        .fbps-site .feature-card p,
-        .fbps-site .pricing-rate-label,
-        .fbps-site .pricing-desc,
-        .fbps-site .pricing-features li,
-        .fbps-site .pricing-example-row .label,
-        .fbps-site .faq-answer p,
-        .fbps-site .cta-section p,
-        .fbps-site .footer-brand p,
-        .fbps-site .footer-col a {
-            color: var(--text-secondary) !important;
-            -webkit-text-fill-color: var(--text-secondary) !important;
-        }
-
-        .fbps-site .section-label,
-        .fbps-site .hero-stat .value,
-        .fbps-site .phone-balance-amount,
-        .fbps-site .phone-balance-pct,
-        .fbps-site .phone-bill-pct,
-        .fbps-site .pricing-label,
-        .fbps-site .pricing-example-row.highlight .label,
-        .fbps-site .pricing-example-row.highlight .value,
-        .fbps-site .comparison-card.good .comparison-row .value,
-        .fbps-site .comparison-card.good h3 {
-            color: var(--primary) !important;
-            -webkit-text-fill-color: var(--primary) !important;
-        }
-
-        .fbps-site .fbps-btn-primary,
-        .fbps-site .nav-cta,
-        .fbps-site .pricing-cta,
-        .fbps-site .cta-form button {
-            color: var(--on-primary) !important;
-            -webkit-text-fill-color: var(--on-primary) !important;
-        }
-
-        .fbps-site .fbps-btn-secondary,
-        .fbps-site .nav-app {
-            color: var(--text) !important;
-            -webkit-text-fill-color: var(--text) !important;
-        }
-
-        .fbps-site .fbps-btn-secondary:hover,
-        .fbps-site .nav-app:hover {
-            color: var(--primary) !important;
-            -webkit-text-fill-color: var(--primary) !important;
-        }
-
-        .fbps-site .cta-form input {
-            color: var(--text) !important;
-            -webkit-text-fill-color: var(--text) !important;
-        }
-
-        .fbps-page-host,
-        .fbps-page-host .content-wrapper,
-        .fbps-page-host .content,
-        .fbps-page-host .sqs-layout,
-        .fbps-page-host .sqs-row,
-        .fbps-page-host .sqs-block,
-        .fbps-page-host .sqs-block-content,
-        .fbps-page-host .code-block,
-        .fbps-page-host .html-block {
-            max-width: none !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: transparent !important;
-            min-height: 0 !important;
-        }
-
-        .fbps-page-host {
-            overflow: visible !important;
-        }
-
-        .fbps-page-host .section-background,
-        .fbps-page-host .section-border,
-        .fbps-page-host .section-divider-display {
-            display: none !important;
-        }
-
-        .fbps-page-host .content-wrapper {
-            box-sizing: border-box !important;
-        }
-
-        body:has(#fbps-site) {
-            background: var(--bg) !important;
-        }
     </style>
 </head>
 <body>
-<div id="fbps-site" class="fbps-site">
 
 <!-- ═══════════ NAVIGATION ═══════════ -->
 <nav>
     <div class="container">
-        <a href="#" class="nav-logo" aria-label="FBPS home">
-            <span class="brand-mark">F</span>
-            <span class="brand-name">
-                <span class="brand-title">FBPS</span>
-                <span class="brand-subtitle">Fractional Bill Pay</span>
-            </span>
+        <a href="#" class="nav-logo">
+            <span>F</span> Fractional
+            <span class="dot"></span>
         </a>
         <ul class="nav-links">
             <li><a href="#how-it-works">How it Works</a></li>
             <li><a href="#features">Features</a></li>
             <li><a href="#pricing">Pricing</a></li>
             <li><a href="#faq">FAQ</a></li>
-            <li><a href="https://app.fbpsapp.com/" class="nav-app">Add the app to your Home Screen</a></li>
             <li><a href="#signup" class="nav-cta">Get Early Access</a></li>
         </ul>
-        <button class="mobile-menu-btn" onclick="var menu=document.querySelector('#fbps-site .nav-links'); if (menu) menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';">&#9776;</button>
+        <button class="mobile-menu-btn" onclick="document.querySelector('.nav-links').style.display = document.querySelector('.nav-links').style.display === 'flex' ? 'none' : 'flex'">&#9776;</button>
     </div>
 </nav>
 
@@ -1227,9 +953,8 @@
         <h1>Turn big bills into tiny daily payments</h1>
         <p>Fractional breaks your monthly expenses into daily, weekly, or biweekly micro-contributions. When bills come due, the money is already there.</p>
         <div class="hero-buttons">
-            <a href="https://app.fbpsapp.com/" class="fbps-btn fbps-btn-primary">Add the app to your Home Screen &rarr;</a>
-            <a href="#signup" class="fbps-btn fbps-btn-secondary">Join the Waitlist</a>
-            <a href="#how-it-works" class="fbps-btn fbps-btn-secondary">See How It Works</a>
+            <a href="#signup" class="btn-primary">Join the Waitlist &rarr;</a>
+            <a href="#how-it-works" class="btn-secondary">See How It Works</a>
         </div>
         <div class="hero-stats">
             <div class="hero-stat">
@@ -1494,7 +1219,7 @@
                     </div>
                 </div>
 
-                <a href="https://app.fbpsapp.com/"><button class="pricing-cta">Add the app to your Home Screen</button></a>
+                <a href="#signup"><button class="pricing-cta">Join the Waitlist</button></a>
                 <p class="pricing-note">Free to join. No credit card required.</p>
             </div>
         </div>
@@ -1591,7 +1316,6 @@
             <input type="email" placeholder="Enter your email" required />
             <button type="submit">Join Waitlist</button>
         </form>
-        <a href="https://app.fbpsapp.com/" class="fbps-btn fbps-btn-primary fbps-app-download-cta">Add the app to your Home Screen</a>
         <p class="cta-note">Free to join. No credit card required. We'll notify you at launch.</p>
     </div>
 </section>
@@ -1601,7 +1325,7 @@
     <div class="container">
         <div class="footer-grid">
             <div class="footer-brand">
-                <div class="logo"><span class="brand-mark">F</span> <span>FBPS</span></div>
+                <div class="logo">F &nbsp;Fractional</div>
                 <p>Break your bills into bite-sized payments and never miss a due date again.</p>
             </div>
             <div class="footer-col">
@@ -1611,7 +1335,6 @@
                     <li><a href="#features">Features</a></li>
                     <li><a href="#pricing">Pricing</a></li>
                     <li><a href="#faq">FAQ</a></li>
-                    <li><a href="https://app.fbpsapp.com/">Add the app to your Home Screen</a></li>
                 </ul>
             </div>
             <div class="footer-col">
@@ -1638,34 +1361,6 @@
         </div>
     </div>
 </footer>
-
-<script>
-  (function () {
-    var title = 'FBPS | Fractional Bill Pay - Break Your Bills Into Bite-Sized Payments';
-    document.title = title;
-
-    var site = document.getElementById('fbps-site');
-    var host = site ? site.closest('section, article, main, .page-section, .fe-block, .sqs-block, .sqs-layout') : null;
-    while (host && !host.classList.contains('page-section') && host.parentElement) {
-      host = host.parentElement.closest('section, article, main, .page-section, .fe-block, .sqs-block, .sqs-layout');
-    }
-    if (host) host.classList.add('fbps-page-host');
-
-    var faviconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%2300D998"/><text x="32" y="43" text-anchor="middle" font-family="Georgia, serif" font-size="36" font-weight="700" fill="%23FFFFFF">F</text></svg>';
-    var faviconHref = 'data:image/svg+xml,' + faviconSvg;
-    var favicon = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]') || document.createElement('link');
-    favicon.setAttribute('rel', 'icon');
-    favicon.setAttribute('type', 'image/svg+xml');
-    favicon.setAttribute('href', faviconHref);
-    document.head.appendChild(favicon);
-
-    var appleIcon = document.querySelector('link[rel="apple-touch-icon"]') || document.createElement('link');
-    appleIcon.setAttribute('rel', 'apple-touch-icon');
-    appleIcon.setAttribute('href', faviconHref);
-    document.head.appendChild(appleIcon);
-  })();
-</script>
-</div>
 
 </body>
 </html>
