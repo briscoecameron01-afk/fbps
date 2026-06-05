@@ -1,0 +1,472 @@
+<h2 class="sr-only">Fractional Bill Pay wallet screen mockups showing main hub, deposit, withdraw, transfer, card management, and transaction history</h2>
+
+<style>
+.wall-wrap { padding: 1rem 0; }
+.wall-nav { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.wall-nav button { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 8px 16px; font-size: 13px; cursor: pointer; color: var(--color-text-secondary); font-weight: 400; }
+.wall-nav button.active { background: #0d2847; color: #00D998; border-color: #00D998; font-weight: 500; }
+.wall-screen { display: none; }
+.wall-screen.active { display: block; }
+.phone-frame { background: #0A1628; border-radius: var(--border-radius-lg); border: 0.5px solid #1C2E4A; max-width: 680px; overflow: hidden; }
+.phone-inner { padding: 24px; font-family: var(--font-sans); }
+.w-text { color: #FFFFFF; }
+.w-sub { color: #94A3B8; }
+.w-muted { color: #64748B; }
+.w-green { color: #00D998; }
+.w-cyan { color: #00B4D8; }
+.w-red { color: #FF4757; }
+.w-gold { color: #FFB800; }
+.w-card { background: #111E33; border: 1px solid #1C2E4A; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.w-balance-card { background: linear-gradient(135deg, #0E1F38, #162A46); border: 1px solid #1C2E4A; border-radius: 16px; padding: 28px; margin-bottom: 20px; position: relative; overflow: hidden; }
+.w-balance-card::after { content: ''; position: absolute; top: -60px; right: -60px; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(0,217,152,0.1), transparent 70%); }
+.w-label { font-size: 11px; color: #64748B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.w-amount-big { font-size: 36px; font-weight: 500; color: #FFFFFF; margin-bottom: 16px; }
+.w-stat-row { display: flex; gap: 32px; flex-wrap: wrap; }
+.w-stat-row > div > div:first-child { font-size: 11px; color: #64748B; margin-bottom: 2px; }
+.w-stat-row > div > div:last-child { font-size: 16px; font-weight: 500; }
+.w-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+.w-action-btn { background: #111E33; border: 1px solid #1C2E4A; border-radius: 12px; padding: 16px 8px; text-align: center; }
+.w-action-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 18px; }
+.w-action-label { font-size: 12px; font-weight: 500; color: #FFFFFF; }
+.w-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.w-section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.w-section-head h3 { font-size: 15px; font-weight: 500; color: #FFFFFF; margin: 0; }
+.w-section-head a { font-size: 12px; color: #00D998; font-weight: 500; cursor: default; }
+.w-tx-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1C2E4A; }
+.w-tx-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.w-tx-info { flex: 1; min-width: 0; }
+.w-tx-desc { font-size: 13px; font-weight: 500; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-tx-date { font-size: 11px; color: #64748B; }
+.w-tx-amt { font-size: 13px; font-weight: 500; flex-shrink: 0; }
+.w-mini-card { border-radius: 12px; padding: 16px; position: relative; overflow: hidden; margin-bottom: 10px; }
+.w-mini-card::after { content: ''; position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.04); }
+.w-mini-card .card-type { font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; }
+.w-mini-card .card-net { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); }
+.w-mini-card .card-num { font-size: 15px; font-weight: 500; color: #FFFFFF; letter-spacing: 2px; margin: 10px 0; }
+.w-mini-card .card-bottom { display: flex; justify-content: space-between; }
+.w-mini-card .card-exp { font-size: 10px; color: rgba(255,255,255,0.5); }
+.w-mini-card .card-status { font-size: 10px; font-weight: 500; }
+.w-progress { height: 5px; background: #1C2E4A; border-radius: 99px; overflow: hidden; margin-top: 4px; }
+.w-progress-fill { height: 100%; border-radius: 99px; }
+.w-bill-row { margin-bottom: 10px; }
+.w-bill-row .bill-top { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.w-bill-row .bill-name { font-size: 12px; color: #FFFFFF; }
+.w-bill-row .bill-amt { font-size: 11px; color: #64748B; }
+
+.w-form-section { margin-bottom: 16px; }
+.w-input-wrap { position: relative; margin-bottom: 12px; }
+.w-input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; color: #64748B; }
+.w-input { width: 100%; padding: 14px 14px 14px 32px; background: #0F1D32; border: 1px solid #1C2E4A; border-radius: 8px; color: #FFFFFF; font-size: 20px; font-weight: 500; box-sizing: border-box; outline: none; }
+.w-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.w-preset { padding: 5px 14px; background: transparent; border: 1px solid #1C2E4A; border-radius: 99px; color: #94A3B8; font-size: 12px; font-weight: 500; }
+.w-preset.sel { background: #00D998; border-color: #00D998; color: #0A1628; }
+.w-account { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #1C2E4A; border-radius: 8px; margin-bottom: 8px; }
+.w-account.sel { background: rgba(0,217,152,0.08); border-color: #00D998; }
+.w-account-icon { width: 36px; height: 36px; border-radius: 8px; background: #162A46; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.w-account-info { flex: 1; }
+.w-account-name { font-size: 13px; font-weight: 500; color: #FFFFFF; }
+.w-account-type { font-size: 11px; color: #64748B; }
+.w-account-badge { font-size: 10px; color: #00D998; font-weight: 500; background: rgba(0,217,152,0.1); padding: 2px 8px; border-radius: 99px; }
+.w-btn { width: 100%; padding: 14px; background: #00D998; border: none; border-radius: 8px; color: #0A1628; font-size: 14px; font-weight: 500; }
+.w-btn.disabled { background: #64748B; opacity: 0.6; }
+.w-back { font-size: 13px; color: #00D998; font-weight: 500; margin-bottom: 16px; }
+
+.w-big-card { border-radius: 16px; padding: 28px; position: relative; overflow: hidden; aspect-ratio: 1.6; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 16px; }
+.w-big-card::after { content: ''; position: absolute; top: -40px; right: -40px; width: 150px; height: 150px; border-radius: 50%; background: rgba(255,255,255,0.04); }
+.w-big-card .bc-top { display: flex; justify-content: space-between; position: relative; z-index: 1; }
+.w-big-card .bc-mid { font-size: 22px; font-weight: 500; color: #FFFFFF; letter-spacing: 3px; text-align: center; position: relative; z-index: 1; }
+.w-big-card .bc-bot { display: flex; justify-content: space-between; position: relative; z-index: 1; }
+
+.w-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.w-filter { padding: 5px 12px; background: transparent; border: 1px solid #1C2E4A; border-radius: 99px; color: #94A3B8; font-size: 11px; font-weight: 500; }
+.w-filter.sel { background: #00D998; border-color: #00D998; color: #0A1628; }
+.w-search { display: flex; align-items: center; gap: 8px; background: #111E33; border: 1px solid #1C2E4A; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
+.w-search input { flex: 1; background: transparent; border: none; color: #FFFFFF; font-size: 13px; outline: none; }
+.w-summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.w-summary-card { background: #111E33; border: 1px solid #1C2E4A; border-radius: 10px; padding: 14px; text-align: center; }
+.w-summary-card .sc-label { font-size: 11px; color: #64748B; margin-bottom: 2px; }
+.w-summary-card .sc-value { font-size: 18px; font-weight: 500; }
+.w-date-group { font-size: 11px; font-weight: 500; color: #64748B; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 6px; border-bottom: 1px solid #1C2E4A; margin-bottom: 8px; margin-top: 16px; }
+
+.w-bill-select { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #1C2E4A; border-radius: 8px; margin-bottom: 8px; }
+.w-bill-select.sel { background: rgba(0,217,152,0.08); border-color: #00D998; }
+.w-bill-icon { font-size: 18px; width: 32px; text-align: center; }
+.w-bill-info { flex: 1; }
+.w-bill-sname { font-size: 13px; font-weight: 500; color: #FFFFFF; }
+.w-bill-prog { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.w-bill-prog-bar { flex: 1; height: 3px; background: #1C2E4A; border-radius: 99px; overflow: hidden; }
+.w-bill-prog-fill { height: 100%; border-radius: 99px; }
+.w-bill-pct { font-size: 10px; color: #64748B; }
+.w-bill-right { text-align: right; }
+.w-bill-price { font-size: 13px; font-weight: 500; color: #FFFFFF; }
+.w-bill-remain { font-size: 11px; }
+.w-fee-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1C2E4A; }
+.w-fee-row:last-child { border-bottom: none; }
+.w-fee-label { font-size: 13px; }
+.w-fee-value { font-size: 13px; font-weight: 500; }
+</style>
+
+<div class="wall-wrap">
+<div class="wall-nav" id="wallNav">
+  <button class="active" onclick="showScreen('main')">Wallet hub</button>
+  <button onclick="showScreen('deposit')">Add money</button>
+  <button onclick="showScreen('withdraw')">Withdraw</button>
+  <button onclick="showScreen('transfer')">Transfer to bill</button>
+  <button onclick="showScreen('cards')">Card management</button>
+  <button onclick="showScreen('history')">Transactions</button>
+</div>
+
+<!-- ===== MAIN WALLET ===== -->
+<div class="wall-screen active" id="screen-main">
+<div class="phone-frame"><div class="phone-inner">
+  <div style="font-size: 20px; font-weight: 500; color: #FFFFFF; margin-bottom: 20px;">Wallet</div>
+
+  <div class="w-balance-card">
+    <div class="w-label">Available balance</div>
+    <div class="w-amount-big">$1,247.33</div>
+    <div class="w-stat-row">
+      <div><div>Bills funded</div><div class="w-green">$449.99</div></div>
+      <div><div>Target total</div><div class="w-text">$509.98</div></div>
+      <div><div>Linked accounts</div><div class="w-cyan">2</div></div>
+    </div>
+  </div>
+
+  <div class="w-actions">
+    <div class="w-action-btn">
+      <div class="w-action-icon" style="background: rgba(0,217,152,0.15); color: #00D998;">&#x2193;</div>
+      <div class="w-action-label">Add money</div>
+    </div>
+    <div class="w-action-btn">
+      <div class="w-action-icon" style="background: rgba(0,180,216,0.15); color: #00B4D8;">&#x2191;</div>
+      <div class="w-action-label">Withdraw</div>
+    </div>
+    <div class="w-action-btn">
+      <div class="w-action-icon" style="background: rgba(255,184,0,0.15); color: #FFB800;">&#x2194;</div>
+      <div class="w-action-label">Transfer</div>
+    </div>
+    <div class="w-action-btn">
+      <div class="w-action-icon" style="background: rgba(167,139,250,0.15); color: #A78BFA;">&#x1F4B3;</div>
+      <div class="w-action-label">Cards</div>
+    </div>
+  </div>
+
+  <div class="w-two-col">
+    <div class="w-card">
+      <div class="w-section-head"><h3>Recent transactions</h3><a>View all &#x2192;</a></div>
+      <div class="w-tx-row">
+        <div class="w-tx-icon" style="background: rgba(0,217,152,0.12); color: #00D998;">&#x2193;</div>
+        <div class="w-tx-info"><div class="w-tx-desc">Deposit from Chase Bank</div><div class="w-tx-date">2026-05-28</div></div>
+        <div class="w-tx-amt w-green">+$500.00</div>
+      </div>
+      <div class="w-tx-row">
+        <div class="w-tx-icon" style="background: rgba(255,71,87,0.12); color: #FF4757;">&#x1F4CB;</div>
+        <div class="w-tx-info"><div class="w-tx-desc">Electricity bill payment</div><div class="w-tx-date">2026-05-27</div></div>
+        <div class="w-tx-amt w-text">-$120.00</div>
+      </div>
+      <div class="w-tx-row">
+        <div class="w-tx-icon" style="background: rgba(255,71,87,0.12); color: #FF4757;">&#x1F4B0;</div>
+        <div class="w-tx-info"><div class="w-tx-desc">Contribution to Insurance</div><div class="w-tx-date">2026-05-26</div></div>
+        <div class="w-tx-amt w-text">-$75.00</div>
+      </div>
+      <div class="w-tx-row">
+        <div class="w-tx-icon" style="background: rgba(0,217,152,0.12); color: #00D998;">&#x2193;</div>
+        <div class="w-tx-info"><div class="w-tx-desc">Deposit from BofA</div><div class="w-tx-date">2026-05-25</div></div>
+        <div class="w-tx-amt w-green">+$300.00</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="w-card">
+        <div class="w-section-head"><h3>My cards</h3><a>Manage &#x2192;</a></div>
+        <div class="w-mini-card" style="background: linear-gradient(135deg, #1a365d, #0d2847);">
+          <div style="display: flex; justify-content: space-between;"><span class="card-type">Virtual card</span><span class="card-net">VISA</span></div>
+          <div class="card-num">&#x2022;&#x2022;&#x2022;&#x2022; &#x2022;&#x2022;&#x2022;&#x2022; &#x2022;&#x2022;&#x2022;&#x2022; 4829</div>
+          <div class="card-bottom"><span class="card-exp">12/28</span><span class="card-status w-green">Active</span></div>
+        </div>
+        <div class="w-mini-card" style="background: linear-gradient(135deg, #2d1b4e, #1a365d);">
+          <div style="display: flex; justify-content: space-between;"><span class="card-type">Physical card</span><span class="card-net">MC</span></div>
+          <div class="card-num">&#x2022;&#x2022;&#x2022;&#x2022; &#x2022;&#x2022;&#x2022;&#x2022; &#x2022;&#x2022;&#x2022;&#x2022; 7316</div>
+          <div class="card-bottom"><span class="card-exp">06/29</span><span class="card-status w-green">Active</span></div>
+        </div>
+      </div>
+
+      <div class="w-card">
+        <div style="font-size: 15px; font-weight: 500; color: #FFFFFF; margin-bottom: 12px;">Bill funding</div>
+        <div class="w-bill-row"><div class="bill-top"><span class="bill-name">&#x26A1; Electricity</span><span class="bill-amt">$120 / $120</span></div><div class="w-progress"><div class="w-progress-fill" style="width:100%; background:#00D998;"></div></div></div>
+        <div class="w-bill-row"><div class="bill-top"><span class="bill-name">&#x1F310; Internet</span><span class="bill-amt">$40 / $79.99</span></div><div class="w-progress"><div class="w-progress-fill" style="width:50%; background:#00B4D8;"></div></div></div>
+        <div class="w-bill-row"><div class="bill-top"><span class="bill-name">&#x1F6E1; Insurance</span><span class="bill-amt">$150 / $150</span></div><div class="w-progress"><div class="w-progress-fill" style="width:100%; background:#00D998;"></div></div></div>
+        <div class="w-bill-row"><div class="bill-top"><span class="bill-name">&#x1F4F1; Phone</span><span class="bill-amt">$65 / $65</span></div><div class="w-progress"><div class="w-progress-fill" style="width:100%; background:#00D998;"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div></div>
+</div>
+
+<!-- ===== DEPOSIT ===== -->
+<div class="wall-screen" id="screen-deposit">
+<div class="phone-frame"><div class="phone-inner">
+  <div class="w-back">&#x2190; Back to wallet</div>
+  <div style="font-size: 20px; font-weight: 500; color: #FFFFFF; margin-bottom: 4px;">Add money</div>
+  <div style="font-size: 13px; color: #94A3B8; margin-bottom: 20px;">Current balance: $1,247.33</div>
+
+  <div class="w-card">
+    <div style="font-size: 13px; color: #94A3B8; margin-bottom: 8px;">Amount</div>
+    <div class="w-input-wrap">
+      <span class="w-input-prefix">$</span>
+      <div class="w-input" style="padding-left: 32px;">250.00</div>
+    </div>
+    <div class="w-presets">
+      <span class="w-preset">$50</span>
+      <span class="w-preset">$100</span>
+      <span class="w-preset sel">$250</span>
+      <span class="w-preset">$500</span>
+      <span class="w-preset">$1,000</span>
+    </div>
+  </div>
+
+  <div class="w-card">
+    <div style="font-size: 13px; color: #94A3B8; margin-bottom: 10px;">From account</div>
+    <div class="w-account sel">
+      <div class="w-account-icon">&#x1F3E6;</div>
+      <div class="w-account-info"><div class="w-account-name">Chase Bank</div><div class="w-account-type">checking ****5678</div></div>
+      <span class="w-account-badge">Primary</span>
+    </div>
+    <div class="w-account">
+      <div class="w-account-icon">&#x1F3E6;</div>
+      <div class="w-account-info"><div class="w-account-name">Bank of America</div><div class="w-account-type">savings ****1234</div></div>
+    </div>
+  </div>
+
+  <button class="w-btn">Deposit $250.00</button>
+</div></div>
+</div>
+
+<!-- ===== WITHDRAW ===== -->
+<div class="wall-screen" id="screen-withdraw">
+<div class="phone-frame"><div class="phone-inner">
+  <div class="w-back">&#x2190; Back to wallet</div>
+  <div style="font-size: 20px; font-weight: 500; color: #FFFFFF; margin-bottom: 4px;">Withdraw funds</div>
+  <div style="font-size: 13px; color: #94A3B8; margin-bottom: 20px;">Available: $1,247.33</div>
+
+  <div class="w-card">
+    <div style="font-size: 13px; color: #94A3B8; margin-bottom: 8px;">Amount</div>
+    <div class="w-input-wrap">
+      <span class="w-input-prefix">$</span>
+      <div class="w-input" style="padding-left: 32px;">500.00</div>
+    </div>
+    <span class="w-preset" style="margin-top: 4px; display: inline-block;">Withdraw all</span>
+  </div>
+
+  <div class="w-card">
+    <div style="font-size: 13px; color: #94A3B8; margin-bottom: 10px;">To account</div>
+    <div class="w-account sel">
+      <div class="w-account-icon">&#x1F3E6;</div>
+      <div class="w-account-info"><div class="w-account-name">Chase Bank</div><div class="w-account-type">checking ****5678</div></div>
+    </div>
+  </div>
+
+  <div style="background: rgba(0,180,216,0.06); border: 1px solid rgba(0,180,216,0.2); border-radius: 8px; padding: 12px; margin-bottom: 16px; display: flex; gap: 8px;">
+    <span style="font-size: 14px;">&#x2139;&#xFE0F;</span>
+    <span style="font-size: 11px; color: #94A3B8; line-height: 1.5;">Withdrawals typically take 1-3 business days. No fees for withdrawals.</span>
+  </div>
+
+  <button class="w-btn">Withdraw $500.00</button>
+</div></div>
+</div>
+
+<!-- ===== TRANSFER ===== -->
+<div class="wall-screen" id="screen-transfer">
+<div class="phone-frame"><div class="phone-inner">
+  <div class="w-back">&#x2190; Back to wallet</div>
+  <div style="font-size: 20px; font-weight: 500; color: #FFFFFF; margin-bottom: 4px;">Transfer to bill</div>
+  <div style="font-size: 13px; color: #94A3B8; margin-bottom: 20px;">A 1.5% transaction fee applies.</div>
+
+  <div class="w-card">
+    <div style="font-size: 13px; color: #94A3B8; margin-bottom: 10px;">Select bill</div>
+    <div class="w-bill-select sel">
+      <div class="w-bill-icon">&#x1F310;</div>
+      <div class="w-bill-info">
+        <div class="w-bill-sname">Internet</div>
+        <div class="w-bill-prog"><div class="w-bill-prog-bar"><div class="w-bill-prog-fill" style="width:50%; background:#00B4D8;"></div></div><span class="w-bill-pct">50%</span></div>
+      </div>
+      <div class="w-bill-right"><div class="w-bill-price">$79.99</div><div class="w-bill-remain w-gold">$39.99 left</div></div>
+    </div>
+    <div class="w-bill-select">
+      <div class="w-bill-icon">&#x1F4F1;</div>
+      <div class="w-bill-info">
+        <div class="w-bill-sname">Phone</div>
+        <div class="w-bill-prog"><div class="w-bill-prog-bar"><div class="w-bill-prog-fill" style="width:100%; background:#00D998;"></div></div><span class="w-bill-pct">100%</span></div>
+      </div>
+      <div class="w-bill-right"><div class="w-bill-price">$65.00</div><div class="w-bill-remain w-green">Funded</div></div>
+    </div>
+  </div>
+
+  <div class="w-card">
+    <div style="font-size: 13px; color: #94A3B8; margin-bottom: 8px;">Amount</div>
+    <div class="w-input-wrap">
+      <span class="w-input-prefix">$</span>
+      <div class="w-input" style="padding-left: 32px;">39.99</div>
+    </div>
+    <span class="w-preset" style="display: inline-block;">Fill remaining ($39.99)</span>
+  </div>
+
+  <div class="w-card">
+    <div style="font-size: 14px; font-weight: 500; color: #FFFFFF; margin-bottom: 10px;">Fee breakdown</div>
+    <div class="w-fee-row"><span class="w-fee-label w-sub">Transfer amount</span><span class="w-fee-value w-text">$39.99</span></div>
+    <div class="w-fee-row"><span class="w-fee-label w-muted">Fee (1.5%)</span><span class="w-fee-value w-muted">$0.60</span></div>
+    <div class="w-fee-row"><span class="w-fee-label w-green">Total from wallet</span><span class="w-fee-value w-green">$40.59</span></div>
+  </div>
+
+  <button class="w-btn">Transfer $39.99</button>
+</div></div>
+</div>
+
+<!-- ===== CARDS ===== -->
+<div class="wall-screen" id="screen-cards">
+<div class="phone-frame"><div class="phone-inner">
+  <div class="w-back">&#x2190; Back to wallet</div>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+      <div style="font-size: 20px; font-weight: 500; color: #FFFFFF;">Card management</div>
+      <div style="font-size: 13px; color: #94A3B8;">Virtual and physical cards</div>
+    </div>
+    <span style="padding: 8px 16px; background: #00D998; border-radius: 8px; color: #0A1628; font-size: 12px; font-weight: 500;">+ New card</span>
+  </div>
+
+  <div style="display: flex; gap: 6px; margin-bottom: 16px;">
+    <span class="w-preset sel">&#x1F4BB; ····4829</span>
+    <span class="w-preset">&#x1F4B3; ····7316</span>
+  </div>
+
+  <div class="w-two-col">
+    <div>
+      <div class="w-big-card" style="background: linear-gradient(135deg, #1a365d, #0d2847, #162A46);">
+        <div class="bc-top">
+          <div><div style="font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 2px;">Virtual card</div><div style="font-size: 13px; font-weight: 500; color: #FFFFFF;">Fractional</div></div>
+          <div style="font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.7);">VISA</div>
+        </div>
+        <div class="bc-mid">&#x2022;&#x2022;&#x2022;&#x2022; &nbsp; &#x2022;&#x2022;&#x2022;&#x2022; &nbsp; &#x2022;&#x2022;&#x2022;&#x2022; &nbsp; 4829</div>
+        <div class="bc-bot">
+          <div><div style="font-size: 9px; color: rgba(255,255,255,0.4); text-transform: uppercase;">Cardholder</div><div style="font-size: 12px; color: #FFFFFF;">SARAH LOREN</div></div>
+          <div><div style="font-size: 9px; color: rgba(255,255,255,0.4); text-transform: uppercase;">Expires</div><div style="font-size: 12px; color: #FFFFFF;">12/28</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="w-card">
+        <div style="font-size: 14px; font-weight: 500; color: #FFFFFF; margin-bottom: 12px;">Quick actions</div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #1C2E4A; border-radius: 8px; margin-bottom: 8px;">
+          <span style="font-size: 16px;">&#x2744;&#xFE0F;</span>
+          <div><div style="font-size: 13px; font-weight: 500; color: #FFFFFF;">Freeze card</div><div style="font-size: 11px; color: #64748B;">Temporarily disable</div></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #1C2E4A; border-radius: 8px;">
+          <span style="font-size: 16px;">&#x2699;&#xFE0F;</span>
+          <div><div style="font-size: 13px; font-weight: 500; color: #FFFFFF;">Spending limits</div><div style="font-size: 11px; color: #64748B;">Adjust daily and monthly</div></div>
+        </div>
+      </div>
+
+      <div class="w-card">
+        <div style="font-size: 14px; font-weight: 500; color: #FFFFFF; margin-bottom: 10px;">Spending</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span style="font-size: 12px; color: #94A3B8;">Monthly spend</span>
+          <span style="font-size: 12px; color: #FFFFFF; font-weight: 500;">$245.99 / $5,000</span>
+        </div>
+        <div class="w-progress" style="height: 7px; margin-bottom: 12px;"><div class="w-progress-fill" style="width: 5%; background: #00D998;"></div></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="background: #0E1F38; border-radius: 8px; padding: 10px; text-align: center;">
+            <div style="font-size: 10px; color: #64748B;">Daily limit</div>
+            <div style="font-size: 15px; font-weight: 500; color: #FFFFFF;">$500</div>
+          </div>
+          <div style="background: #0E1F38; border-radius: 8px; padding: 10px; text-align: center;">
+            <div style="font-size: 10px; color: #64748B;">Monthly limit</div>
+            <div style="font-size: 15px; font-weight: 500; color: #FFFFFF;">$5,000</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></div>
+</div>
+
+<!-- ===== TRANSACTION HISTORY ===== -->
+<div class="wall-screen" id="screen-history">
+<div class="phone-frame"><div class="phone-inner">
+  <div class="w-back">&#x2190; Back to wallet</div>
+  <div style="font-size: 20px; font-weight: 500; color: #FFFFFF; margin-bottom: 16px;">Transaction history</div>
+
+  <div class="w-summary-cards">
+    <div class="w-summary-card"><div class="sc-label">Total in</div><div class="sc-value w-green">$1,800.00</div></div>
+    <div class="w-summary-card"><div class="sc-label">Total out</div><div class="sc-value w-red">$577.79</div></div>
+    <div class="w-summary-card"><div class="sc-label">Transactions</div><div class="sc-value w-text">12</div></div>
+  </div>
+
+  <div class="w-search">
+    <span style="color: #64748B; font-size: 14px;">&#x1F50D;</span>
+    <input placeholder="Search transactions..." />
+  </div>
+
+  <div class="w-filters">
+    <span class="w-filter sel">All</span>
+    <span class="w-filter">Deposits</span>
+    <span class="w-filter">Withdrawals</span>
+    <span class="w-filter">Bill payments</span>
+    <span class="w-filter">Fees</span>
+    <span class="w-filter">Refunds</span>
+  </div>
+
+  <div class="w-card">
+    <div class="w-date-group">2026-05-28</div>
+    <div class="w-tx-row">
+      <div class="w-tx-icon" style="background: rgba(0,217,152,0.12); color: #00D998;">&#x2193;</div>
+      <div class="w-tx-info"><div class="w-tx-desc">Deposit from Chase Bank</div><div class="w-tx-date">deposit</div></div>
+      <div class="w-tx-amt w-green">+$500.00</div>
+    </div>
+
+    <div class="w-date-group">2026-05-27</div>
+    <div class="w-tx-row">
+      <div class="w-tx-icon" style="background: rgba(255,71,87,0.12); color: #FF4757;">&#x1F4CB;</div>
+      <div class="w-tx-info"><div class="w-tx-desc">Electricity bill payment</div><div class="w-tx-date">bill payment <span style="font-size:10px; padding:1px 5px; background:rgba(0,217,152,0.1); color:#00D998; border-radius:99px; margin-left:4px;">completed</span></div></div>
+      <div style="text-align: right;"><div class="w-tx-amt w-text">-$120.00</div><div style="font-size:10px; color:#64748B;">fee: $1.80</div></div>
+    </div>
+    <div class="w-tx-row">
+      <div class="w-tx-icon" style="background: rgba(255,184,0,0.12); color: #FFB800;">&#x1F4B3;</div>
+      <div class="w-tx-info"><div class="w-tx-desc">Transaction fee - Electricity</div><div class="w-tx-date">fee</div></div>
+      <div class="w-tx-amt w-text">-$1.80</div>
+    </div>
+
+    <div class="w-date-group">2026-05-26</div>
+    <div class="w-tx-row">
+      <div class="w-tx-icon" style="background: rgba(255,71,87,0.12); color: #FF4757;">&#x1F4B0;</div>
+      <div class="w-tx-info"><div class="w-tx-desc">Contribution to Insurance</div><div class="w-tx-date">contribution</div></div>
+      <div style="text-align: right;"><div class="w-tx-amt w-text">-$75.00</div><div style="font-size:10px; color:#64748B;">fee: $1.13</div></div>
+    </div>
+
+    <div class="w-date-group">2026-05-25</div>
+    <div class="w-tx-row">
+      <div class="w-tx-icon" style="background: rgba(0,217,152,0.12); color: #00D998;">&#x2193;</div>
+      <div class="w-tx-info"><div class="w-tx-desc">Deposit from Bank of America</div><div class="w-tx-date">deposit</div></div>
+      <div class="w-tx-amt w-green">+$300.00</div>
+    </div>
+
+    <div class="w-date-group">2026-05-24</div>
+    <div class="w-tx-row">
+      <div class="w-tx-icon" style="background: rgba(255,71,87,0.12); color: #FF4757;">&#x2191;</div>
+      <div class="w-tx-info"><div class="w-tx-desc">Withdrawal to Chase Bank</div><div class="w-tx-date">withdrawal</div></div>
+      <div class="w-tx-amt w-text">-$200.00</div>
+    </div>
+  </div>
+</div></div>
+</div>
+</div>
+
+<script>
+function showScreen(id) {
+  document.querySelectorAll('.wall-screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.wall-nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  const btns = document.querySelectorAll('.wall-nav button');
+  const map = { main: 0, deposit: 1, withdraw: 2, transfer: 3, cards: 4, history: 5 };
+  if (map[id] !== undefined) btns[map[id]].classList.add('active');
+}
+</script>
