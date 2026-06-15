@@ -26,21 +26,30 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const { signUp } = useStore();
 
   const handleSignUp = async () => {
+    setFormError('');
+    setEmailError('');
+    setPasswordError('');
+    setShowLoginPrompt(false);
+
     if (!username.trim() || !firstName.trim() || !lastName.trim() || !email.trim() || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setFormError('Please fill in all fields.');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      setPasswordError('Passwords do not match.');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      setPasswordError('Password must be at least 6 characters.');
       return;
     }
 
@@ -48,7 +57,26 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
     try {
       const result = await signUp(email, password, username, firstName, lastName);
       if (result?.error) {
-        Alert.alert('Sign Up Failed', result.error);
+        const message = result.error.toLowerCase();
+        const isExistingAccount =
+          result.errorCode === 'user_already_exists' ||
+          message.includes('already') ||
+          message.includes('registered');
+        const isRateLimited =
+          result.errorStatus === 429 ||
+          result.errorCode === 'over_email_send_rate_limit' ||
+          message.includes('rate limit') ||
+          message.includes('too many');
+
+        if (isExistingAccount) {
+          setEmailError('An account with this email already exists.');
+          setFormError('You can log in with this email instead.');
+          setShowLoginPrompt(true);
+        } else if (isRateLimited) {
+          setFormError('Too many signup attempts. Please wait a few minutes before trying again.');
+        } else {
+          setFormError(result.error);
+        }
         setLoading(false);
       } else {
         setLoading(false);
@@ -56,7 +84,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
       }
     } catch (error) {
       setLoading(false);
-      Alert.alert('Sign Up Failed', 'Unable to create your account. Please try again.');
+      setFormError('Unable to create your account. Please try again.');
     }
   };
 
@@ -83,6 +111,20 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join Fractional and manage your bills smarter</Text>
         </View>
+
+        {!!formError && (
+          <View style={styles.formErrorContainer}>
+            <Text style={styles.formErrorText}>{formError}</Text>
+            {showLoginPrompt && (
+              <TouchableOpacity
+                style={styles.inlineLoginButton}
+                onPress={() => navigation.navigate('Login', { email })}
+              >
+                <Text style={styles.inlineLoginButtonText}>Go to Log In</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* Form Fields */}
         <View style={styles.formContainer}>
@@ -141,6 +183,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
               autoCorrect={false}
               editable={!loading}
             />
+            {!!emailError && <Text style={styles.fieldError}>{emailError}</Text>}
           </View>
 
           {/* Password */}
@@ -164,6 +207,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
                 <Text style={styles.eyeButtonText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
               </TouchableOpacity>
             </View>
+            {!!passwordError && <Text style={styles.fieldError}>{passwordError}</Text>}
           </View>
 
           {/* Confirm Password */}
@@ -358,6 +402,33 @@ const styles = StyleSheet.create({
   linkHighlight: {
     fontSize: fontSizes.sm,
     color: colors.primary,
+    fontWeight: fontWeights.semibold as any,
+  },
+  fieldError: {
+    color: colors.error || '#ef4444',
+    fontSize: fontSizes.xs,
+    marginTop: spacing.xs,
+  },
+  formErrorContainer: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  formErrorText: {
+    color: colors.error || '#ef4444',
+    fontSize: fontSizes.sm,
+    lineHeight: 20,
+  },
+  inlineLoginButton: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+  },
+  inlineLoginButtonText: {
+    color: colors.primary,
+    fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold as any,
   },
   dividerContainer: {

@@ -90,3 +90,72 @@ fractional-app/
 - [ ] Add Stripe for payment processing
 - [ ] Push notifications (Expo Notifications)
 - [ ] Premium subscription (Stripe + RevenueCat)
+
+## Unit Money Movement
+
+Unit Ready-to-Launch banking is embedded in the app through Unit's white-label component. The app asks Supabase for a short-lived RS256 JWT, then passes that JWT to Unit's web component.
+
+Generate a signing key pair:
+
+```bash
+node scripts/generate-unit-jwt-keypair.js
+```
+
+In Unit Sandbox, open **Ready To Launch > Settings > Authentication**:
+
+- Set **Identity Provider** to `Custom`
+- Paste the generated public key body into **Public Key**
+- Set **JWT Issuer** to the same value you use for `UNIT_JWT_ISSUER`
+
+Required Supabase secrets for Ready-to-Launch:
+
+```bash
+npx supabase secrets set UNIT_JWT_PRIVATE_KEY_BASE64=generated_private_key_base64
+npx supabase secrets set UNIT_JWT_ISSUER=https://your-app-domain-or-stable-issuer
+npx supabase secrets set UNIT_ENV=sandbox
+```
+
+If Unit gives you a specific key id, also set `UNIT_JWT_KEY_ID`.
+
+Deploy/update after changing this integration:
+
+```bash
+npx supabase db push
+npx supabase functions deploy unit-create-ready-to-launch-token
+```
+
+The older Custom Build money movement functions are still in the repo for later API-based integration. They require Unit API access that Ready-to-Launch accounts may not expose directly:
+
+```bash
+npx supabase secrets set UNIT_API_TOKEN=your_unit_token
+npx supabase secrets set UNIT_CUSTOMER_ID=your_unit_customer_id
+npx supabase secrets set UNIT_DEPOSIT_ACCOUNT_ID=your_unit_deposit_account_id
+npx supabase functions deploy plaid-create-link-token
+npx supabase functions deploy unit-get-account
+npx supabase functions deploy unit-create-transfer
+npx supabase functions deploy unit-refresh-transfers
+```
+
+## Basic HubSpot Contact Sync
+
+The app can create/update a HubSpot contact for the signed-in user. It only syncs basic CRM fields:
+
+- Email
+- First name
+- Last name
+- Phone number
+
+Create a HubSpot Private App with these scopes:
+
+- `crm.objects.contacts.read`
+- `crm.objects.contacts.write`
+
+Then add the token to Supabase and deploy:
+
+```bash
+npx supabase db push
+npx supabase secrets set HUBSPOT_PRIVATE_APP_TOKEN=your_private_app_token
+npx supabase functions deploy hubspot-sync-contact
+```
+
+HubSpot sync runs quietly after sign-in, onboarding completion, and profile edits. If HubSpot is not configured yet, the app keeps working normally.

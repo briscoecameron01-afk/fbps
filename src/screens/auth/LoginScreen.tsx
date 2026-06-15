@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Platform,
 } from 'react-native';
 import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '@/theme';
 import { useStore } from '@/hooks/useStore';
@@ -140,6 +141,9 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
 
         {/* Title Section */}
         <View style={styles.titleSection}>
+          <View style={styles.logoIcon}>
+            <Text style={styles.logoIconText}>F</Text>
+          </View>
           <Text style={styles.title}>Log In Here</Text>
           <Text style={styles.subtitle}>Welcome Back</Text>
         </View>
@@ -282,6 +286,23 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     marginBottom: spacing['2xl'],
+    alignItems: 'flex-start',
+  },
+  logoIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  logoIconText: {
+    color: colors.textPrimary,
+    fontFamily: Platform.select({ web: 'DM Serif Display, Georgia, serif', default: 'serif' }),
+    fontSize: 20,
+    fontWeight: fontWeights.bold as any,
+    lineHeight: 22,
   },
   title: {
     fontSize: fontSizes['3xl'],

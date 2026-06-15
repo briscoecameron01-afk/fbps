@@ -1,5 +1,13 @@
 import { supabase } from './supabase';
 
+function getPasswordResetRedirectUrl() {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/reset-password`;
+  }
+
+  return 'fractional://reset-password';
+}
+
 export async function signUp({
   email,
   password,
@@ -18,38 +26,69 @@ export async function signUp({
   const normalizedFirstName = firstName.trim();
   const normalizedLastName = lastName.trim();
   const fullName = `${normalizedFirstName} ${normalizedLastName}`.trim();
-  const { data, error } = await supabase.auth.signUp({
-    email: normalizedEmail,
-    password,
-    options: {
-      data: {
-        first_name: normalizedFirstName,
-        last_name: normalizedLastName,
-        username: normalizedUsername,
-        full_name: fullName,
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: normalizedEmail,
+      password,
+      options: {
+        data: {
+          first_name: normalizedFirstName,
+          last_name: normalizedLastName,
+          username: normalizedUsername,
+          full_name: fullName,
+        },
       },
-    },
-  });
+    });
 
-  if (!error && data?.user && data?.session) {
-    await supabase
-      .from('profiles')
-      .upsert({
-        id: data.user.id,
-        username: normalizedUsername,
-        first_name: normalizedFirstName,
-        last_name: normalizedLastName,
-        full_name: fullName,
-        email: normalizedEmail,
-      });
+    const existingUser =
+      !error &&
+      data?.user &&
+      Array.isArray(data.user.identities) &&
+      data.user.identities.length === 0;
+
+    if (existingUser) {
+      return {
+        user: null,
+        session: null,
+        needsEmailConfirmation: false,
+        error: 'An account with this email already exists.',
+        errorCode: 'user_already_exists',
+        errorStatus: 400,
+      };
+    }
+
+    if (!error && data?.user && data?.session) {
+      await supabase
+        .from('profiles')
+        .upsert({
+          id: data.user.id,
+          username: normalizedUsername,
+          first_name: normalizedFirstName,
+          last_name: normalizedLastName,
+          full_name: fullName,
+          email: normalizedEmail,
+        });
+    }
+
+    return {
+      user: data?.user ?? null,
+      session: data?.session ?? null,
+      needsEmailConfirmation: !!data?.user && !data?.session,
+      error: error?.message ?? null,
+      errorCode: error?.code ?? null,
+      errorStatus: error?.status ?? null,
+    };
+  } catch (error: any) {
+    return {
+      user: null,
+      session: null,
+      needsEmailConfirmation: false,
+      error: error?.message || 'Unable to create your account. Please try again.',
+      errorCode: error?.code ?? null,
+      errorStatus: error?.status ?? null,
+    };
   }
-
-  return {
-    user: data?.user ?? null,
-    session: data?.session ?? null,
-    needsEmailConfirmation: !!data?.user && !data?.session,
-    error: error?.message ?? null,
-  };
 }
 
 export async function signIn({ email, password }: { email: string; password: string }) {
@@ -65,7 +104,24 @@ export async function signOut() {
 }
 
 export async function resetPassword({ email }: { email: string }) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    redirectTo: getPasswordResetRedirectUrl(),
+  });
+  return { error: error?.message ?? null };
+}
+
+export async function updatePassword({ password }: { password: string }) {
+  const { data, error } = await supabase.auth.updateUser({ password });
+  return { user: data?.user ?? null, error: error?.message ?? null };
+}
+
+export async function getSession() {
+  const { data, error } = await supabase.auth.getSession();
+  return { session: data?.session ?? null, error: error?.message ?? null };
+}
+
+export async function clearPasswordRecoverySession() {
+  const { error } = await supabase.auth.signOut();
   return { error: error?.message ?? null };
 }
 

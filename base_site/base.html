@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FBPS | Fractional Bill Pay - Break Your Bills Into Bite-Sized Payments</title>
+    <meta name="description" content="Fractional breaks your monthly expenses into daily, weekly, or biweekly micro-contributions. Only a 1.5% transaction fee. No monthly subscriptions." />
+    <meta property="og:site_name" content="FBPS | Fractional Bill Pay" />
+    <meta property="og:title" content="FBPS | Fractional Bill Pay - Break Your Bills Into Bite-Sized Payments" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.fbpsapp.com" />
+    <meta property="twitter:card" content="summary" />
+    <meta property="twitter:title" content="FBPS | Fractional Bill Pay" />
+    <meta property="twitter:url" content="https://www.fbpsapp.com" />
+    <link rel="canonical" href="https://www.fbpsapp.com" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="favicon.svg" />
+    <meta name="application-name" content="FBPS" />
+    <meta name="theme-color" content="#0A1628" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F7FAFC" media="(prefers-color-scheme: light)" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            color-scheme: dark;
+            --bg: #0A1628;
+            --bg-light: #0E1F38;
+            --bg-card: #111E33;
+            --bg-card-light: #162A46;
+            --primary: #00D998;
+            --primary-dark: #00C48B;
+            --secondary: #00B4D8;
+            --on-primary: #061A13;
+            --text: #FFFFFF;
+            --text-secondary: #94A3B8;
+            --text-muted: #7A8EA6;
+            --border: #1C2E4A;
+            --border-light: #243B5C;
+            --error: #FF4757;
+            --gold: #FFB800;
+            --nav-bg: rgba(10, 22, 40, 0.92);
+            --page-shadow: rgba(0,0,0,0.4);
+            --accent-soft: rgba(0, 217, 152, 0.12);
+            --accent-border: rgba(0, 217, 152, 0.28);
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                color-scheme: light;
+                --bg: #F7FAFC;
+                --bg-light: #EDF5F4;
+                --bg-card: #FFFFFF;
+                --bg-card-light: #EEF4F7;
+                --primary: #007A5A;
+                --primary-dark: #006B4D;
+                --secondary: #006E8F;
+                --on-primary: #FFFFFF;
+                --text: #102033;
+                --text-secondary: #334155;
+                --text-muted: #5B6778;
+                --border: #D5E0EA;
+                --border-light: #AFC0D0;
+                --error: #C92F43;
+                --gold: #9A6500;
+                --nav-bg: rgba(255, 255, 255, 0.94);
+                --page-shadow: rgba(15, 23, 42, 0.16);
+                --accent-soft: rgba(0, 122, 90, 0.10);
+                --accent-border: rgba(0, 122, 90, 0.24);
+            }
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .fbps-site {
+            width: 100%;
+            min-height: 100vh;
+            margin: 0;
+            background: var(--bg) !important;
+            color: var(--text) !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            font-size: 16px;
+            line-height: 1.6;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .fbps-site,
+        .fbps-site * {
+            box-sizing: border-box;
+        }
+
+        .fbps-site :where(h1, h2, h3, h4, p, a, button, input, li, span, div) {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        }
+
+        a { color: inherit; text-decoration: none; }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ── Navigation ───────────────────────────────────────── */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--nav-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        nav .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 72px;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .brand-mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--on-primary);
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 20px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .brand-name {
+            display: inline-flex;
+            flex-direction: column;
+            line-height: 1.05;
+        }
+
+        .brand-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--text);
+        }
+
+        .brand-subtitle {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text); }
+
+        .nav-cta {
+            background: var(--primary) !important;
+            color: var(--on-primary) !important;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 700 !important;
+            font-size: 14px !important;
+            transition: background 0.2s !important;
+        }
+
+        .nav-cta:hover { background: var(--primary-dark) !important; }
+
+        .nav-app {
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 10px 16px;
+            color: var(--text) !important;
+            font-weight: 700 !important;
+        }
+
+        .nav-app:hover {
+            border-color: var(--primary);
+            color: var(--primary) !important;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* ── Hero ─────────────────────────────────────────────── */
+        .hero {
+            padding: 160px 0 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(0, 217, 152, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(0, 217, 152, 0.1);
+            border: 1px solid rgba(0, 217, 152, 0.2);
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 32px;
+        }
+
+        .hero h1 {
+            font-size: clamp(36px, 5vw, 64px);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 60px;
+        }
+
+        .fbps-btn {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 16px !important;
+            font-weight: 700;
+            line-height: 1.2;
+            text-align: center;
+            text-decoration: none !important;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+            opacity: 1 !important;
+            visibility: visible !important;
+            text-indent: 0 !important;
+            text-shadow: none !important;
+        }
+
+        .fbps-btn-primary {
+            background: var(--primary);
+            color: var(--on-primary) !important;
+            -webkit-text-fill-color: var(--on-primary) !important;
+            border: none;
+        }
+
+        .fbps-btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+        .fbps-btn-secondary {
+            background: transparent;
+            color: var(--text) !important;
+            -webkit-text-fill-color: var(--text) !important;
+            border: 1px solid var(--border-light);
+            font-weight: 600;
+        }
+
+        .fbps-btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary) !important;
+            -webkit-text-fill-color: var(--primary) !important;
+        }
+
+        .fbps-btn *,
+        .fbps-btn::before,
+        .fbps-btn::after {
+            color: inherit !important;
+            -webkit-text-fill-color: inherit !important;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 48px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat .value {
+            display: block;
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .hero-stat .label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* ── Phone Mockup ────────────────────────────────────── */
+        .phone-section {
+            padding: 40px 0 80px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .phone-mockup {
+            width: 320px;
+            background: var(--bg-card);
+            border-radius: 32px;
+            border: 2px solid var(--border-light);
+            padding: 20px;
+            box-shadow: 0 40px 80px var(--page-shadow);
+            position: relative;
+        }
+
+        .phone-status-bar {
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 24px;
+        }
+
+        .phone-greeting {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .phone-name {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        .phone-balance-card {
+            background: linear-gradient(135deg, rgba(0, 217, 152, 0.15), rgba(0, 180, 216, 0.1));
+            border: 1px solid rgba(0, 217, 152, 0.2);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .phone-balance-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .phone-balance-amount {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .phone-balance-pct {
+            font-size: 12px;
+            color: var(--primary);
+            margin-top: 4px;
+        }
+
+        .phone-bill {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            background: var(--bg-card-light);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .phone-bill-icon {
+            font-size: 20px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 217, 152, 0.1);
+            border-radius: 10px;
+        }
+
+        .phone-bill-info { flex: 1; }
+
+        .phone-bill-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .phone-bill-due {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .phone-bill-amount {
+            text-align: right;
+        }
+
+        .phone-bill-price {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .phone-bill-pct {
+            font-size: 11px;
+            color: var(--primary);
+        }
+
+        .phone-toast {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .phone-toast.green {
+            background: rgba(0, 217, 152, 0.1);
+            border: 1px solid rgba(0, 217, 152, 0.2);
+            color: var(--primary);
+        }
+
+        /* ── Partners ─────────────────────────────────────────── */
+        .partners {
+            padding: 40px 0 80px;
+            text-align: center;
+        }
+
+        .partners-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 28px;
+        }
+
+        .partners-logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 48px;
+            flex-wrap: wrap;
+            opacity: 0.5;
+        }
+
+        .partners-logos span {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        /* ── Section shared styles ────────────────────────────── */
+        .section {
+            padding: 100px 0;
+        }
+
+        .section-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .section-title {
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .section-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 60px;
+        }
+
+        /* ── Problem Section ─────────────────────────────────── */
+        .problem-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .problem-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+        }
+
+        .problem-card .stat-value {
+            font-size: 48px;
+            font-weight: 900;
+            color: var(--error);
+            margin-bottom: 12px;
+        }
+
+        .problem-card .stat-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* ── How It Works ────────────────────────────────────── */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+            position: relative;
+        }
+
+        .step {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--on-primary);
+            font-size: 20px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .step h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .step p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .step-arrow {
+            display: none;
+        }
+
+        /* ── Comparison ───────────────────────────────────────── */
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .comparison-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+        }
+
+        .comparison-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .comparison-card.bad h3 { color: var(--error); }
+        .comparison-card.good h3 { color: var(--primary); }
+
+        .comparison-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .comparison-row:last-child { border-bottom: none; }
+
+        .comparison-row .label { color: var(--text-secondary); }
+        .comparison-card.bad .comparison-row .value { color: var(--error); font-weight: 600; }
+        .comparison-card.good .comparison-row .value { color: var(--primary); font-weight: 600; }
+
+        .comparison-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: var(--primary);
+            padding-top: 60px;
+        }
+
+        /* ── Features ─────────────────────────────────────────── */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--border-light);
+            transform: translateY(-2px);
+        }
+
+        .feature-icon {
+            font-size: 28px;
+            margin-bottom: 16px;
+        }
+
+        .feature-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* ── Pricing ──────────────────────────────────────────── */
+        .pricing-card-wrapper {
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background: var(--bg-card);
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 48px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pricing-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .pricing-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+        }
+
+        .pricing-rate {
+            font-size: 72px;
+            font-weight: 900;
+            color: var(--text);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .pricing-rate-label {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 28px;
+        }
+
+        .pricing-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0 -40px 28px;
+        }
+
+        .pricing-desc {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 32px;
+        }
+
+        .pricing-features {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 36px;
+        }
+
+        .pricing-features li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            font-size: 15px;
+            color: var(--text-secondary);
+        }
+
+        .pricing-features li .check {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(0, 217, 152, 0.15);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .pricing-example {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 32px;
+        }
+
+        .pricing-example-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .pricing-example-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 14px;
+        }
+
+        .pricing-example-row .label { color: var(--text-secondary); }
+        .pricing-example-row .value { color: var(--text); font-weight: 600; }
+        .pricing-example-row.highlight .label { color: var(--primary); font-weight: 600; }
+        .pricing-example-row.highlight .value { color: var(--primary); font-weight: 700; }
+
+        .pricing-cta {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            color: var(--on-primary);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .pricing-cta:hover { background: var(--primary-dark); }
+
+        .pricing-note {
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ── FAQ ──────────────────────────────────────────────── */
+        .faq-list {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .faq-question {
+            width: 100%;
+            background: none;
+            border: none;
+            padding: 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .faq-question span {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .faq-question .icon {
+            font-size: 20px;
+            color: var(--text-muted);
+            transition: transform 0.3s;
+        }
+
+        .faq-item.open .faq-question .icon {
+            transform: rotate(45deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+
+        .faq-item.open .faq-answer {
+            max-height: 300px;
+            padding-bottom: 24px;
+        }
+
+        .faq-answer p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* ── CTA Section ─────────────────────────────────────── */
+        .cta-section {
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .cta-section h2 {
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        .cta-form {
+            display: flex;
+            gap: 12px;
+            max-width: 480px;
+            margin: 0 auto 16px;
+        }
+
+        .cta-form input {
+            flex: 1;
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .cta-form input:focus {
+            border-color: var(--primary);
+        }
+
+        .cta-form input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .cta-form button {
+            padding: 16px 28px;
+            background: var(--primary);
+            color: var(--on-primary);
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        .cta-form button:hover { background: var(--primary-dark); }
+
+        .fbps-app-download-cta {
+            margin: 8px auto 20px;
+        }
+
+        .cta-note {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ── Footer ───────────────────────────────────────────── */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 60px 0 40px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-brand .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .footer-brand p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .footer-col h4 {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .footer-col ul { list-style: none; }
+
+        .footer-col li { margin-bottom: 10px; }
+
+        .footer-col a {
+            font-size: 14px;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+
+        .footer-col a:hover { color: var(--primary); }
+
+        .footer-bottom {
+            border-top: 1px solid var(--border);
+            padding-top: 24px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ── Responsive ───────────────────────────────────────── */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .mobile-menu-btn { display: block; }
+            nav .container { position: relative; }
+
+            .nav-links {
+                position: absolute;
+                top: 72px;
+                left: 24px;
+                right: 24px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+                padding: 16px;
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                box-shadow: 0 24px 60px var(--page-shadow);
+            }
+
+            .nav-links a {
+                display: block;
+                text-align: center;
+                padding: 10px 12px;
+            }
+
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-arrow {
+                padding-top: 0;
+                transform: rotate(90deg);
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .hero-stats { gap: 24px; }
+
+            .pricing-card { padding: 36px 24px; }
+        }
+        /* Squarespace embed hardening */
+        .fbps-site nav,
+        .fbps-site section,
+        .fbps-site footer {
+            color: var(--text) !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        }
+
+        .fbps-site h1,
+        .fbps-site h2,
+        .fbps-site h3,
+        .fbps-site h4,
+        .fbps-site .section-title,
+        .fbps-site .pricing-rate,
+        .fbps-site .phone-name,
+        .fbps-site .phone-status-bar,
+        .fbps-site .phone-bill-name,
+        .fbps-site .phone-bill-price,
+        .fbps-site .faq-question span:not(.icon),
+        .fbps-site .footer-brand .logo {
+            color: var(--text) !important;
+            -webkit-text-fill-color: var(--text) !important;
+        }
+
+        .fbps-site p,
+        .fbps-site .hero p,
+        .fbps-site .section-subtitle,
+        .fbps-site .phone-greeting,
+        .fbps-site .phone-balance-label,
+        .fbps-site .phone-bill-due,
+        .fbps-site .partners-label,
+        .fbps-site .partners-logos span,
+        .fbps-site .problem-card .stat-desc,
+        .fbps-site .step p,
+        .fbps-site .feature-card p,
+        .fbps-site .pricing-rate-label,
+        .fbps-site .pricing-desc,
+        .fbps-site .pricing-features li,
+        .fbps-site .pricing-example-row .label,
+        .fbps-site .faq-answer p,
+        .fbps-site .cta-section p,
+        .fbps-site .footer-brand p,
+        .fbps-site .footer-col a {
+            color: var(--text-secondary) !important;
+            -webkit-text-fill-color: var(--text-secondary) !important;
+        }
+
+        .fbps-site .section-label,
+        .fbps-site .hero-stat .value,
+        .fbps-site .phone-balance-amount,
+        .fbps-site .phone-balance-pct,
+        .fbps-site .phone-bill-pct,
+        .fbps-site .pricing-label,
+        .fbps-site .pricing-example-row.highlight .label,
+        .fbps-site .pricing-example-row.highlight .value,
+        .fbps-site .comparison-card.good .comparison-row .value,
+        .fbps-site .comparison-card.good h3 {
+            color: var(--primary) !important;
+            -webkit-text-fill-color: var(--primary) !important;
+        }
+
+        .fbps-site .fbps-btn-primary,
+        .fbps-site .nav-cta,
+        .fbps-site .pricing-cta,
+        .fbps-site .cta-form button {
+            color: var(--on-primary) !important;
+            -webkit-text-fill-color: var(--on-primary) !important;
+        }
+
+        .fbps-site .fbps-btn-secondary,
+        .fbps-site .nav-app {
+            color: var(--text) !important;
+            -webkit-text-fill-color: var(--text) !important;
+        }
+
+        .fbps-site .fbps-btn-secondary:hover,
+        .fbps-site .nav-app:hover {
+            color: var(--primary) !important;
+            -webkit-text-fill-color: var(--primary) !important;
+        }
+
+        .fbps-site .cta-form input {
+            color: var(--text) !important;
+            -webkit-text-fill-color: var(--text) !important;
+        }
+
+        .fbps-page-host,
+        .fbps-page-host .content-wrapper,
+        .fbps-page-host .content,
+        .fbps-page-host .sqs-layout,
+        .fbps-page-host .sqs-row,
+        .fbps-page-host .sqs-block,
+        .fbps-page-host .sqs-block-content,
+        .fbps-page-host .code-block,
+        .fbps-page-host .html-block {
+            max-width: none !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            min-height: 0 !important;
+        }
+
+        .fbps-page-host {
+            overflow: visible !important;
+        }
+
+        .fbps-page-host .section-background,
+        .fbps-page-host .section-border,
+        .fbps-page-host .section-divider-display {
+            display: none !important;
+        }
+
+        .fbps-page-host .content-wrapper {
+            box-sizing: border-box !important;
+        }
+
+        body:has(#fbps-site) {
+            background: var(--bg) !important;
+        }
+    </style>
+</head>
+<body>
+<div id="fbps-site" class="fbps-site">
+
+<!-- ═══════════ NAVIGATION ═══════════ -->
+<nav>
+    <div class="container">
+        <a href="#" class="nav-logo" aria-label="FBPS home">
+            <span class="brand-mark">F</span>
+            <span class="brand-name">
+                <span class="brand-title">FBPS</span>
+                <span class="brand-subtitle">Fractional Bill Pay</span>
+            </span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#how-it-works">How it Works</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="https://app.fbpsapp.com/" class="nav-app">Add the app to your Home Screen</a></li>
+            <li><a href="#signup" class="nav-cta">Get Early Access</a></li>
+        </ul>
+        <button class="mobile-menu-btn" onclick="var menu=document.querySelector('#fbps-site .nav-links'); if (menu) menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';">&#9776;</button>
+    </div>
+</nav>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-badge">&#x1F680; Now accepting early access signups</div>
+        <h1>Turn big bills into tiny daily payments</h1>
+        <p>Fractional breaks your monthly expenses into daily, weekly, or biweekly micro-contributions. When bills come due, the money is already there.</p>
+        <div class="hero-buttons">
+            <a href="https://app.fbpsapp.com/" class="fbps-btn fbps-btn-primary">Add the app to your Home Screen &rarr;</a>
+            <a href="#signup" class="fbps-btn fbps-btn-secondary">Join the Waitlist</a>
+            <a href="#how-it-works" class="fbps-btn fbps-btn-secondary">See How It Works</a>
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <span class="value">$0</span>
+                <span class="label">Late fees, ever</span>
+            </div>
+            <div class="hero-stat">
+                <span class="value">3 min</span>
+                <span class="label">Setup time</span>
+            </div>
+            <div class="hero-stat">
+                <span class="value">100%</span>
+                <span class="label">Bills on autopilot</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ PHONE MOCKUP ═══════════ -->
+<section class="phone-section">
+    <div class="phone-mockup">
+        <div class="phone-status-bar">9:41</div>
+        <div class="phone-greeting">Good morning,</div>
+        <div class="phone-name">Cam</div>
+
+        <div class="phone-balance-card">
+            <div class="phone-balance-label">Total saved this month</div>
+            <div class="phone-balance-amount">$1,847.32</div>
+            <div class="phone-balance-pct">&uarr; 94% funded</div>
+        </div>
+
+        <div class="phone-bill">
+            <div class="phone-bill-icon">&#x1F3E0;</div>
+            <div class="phone-bill-info">
+                <div class="phone-bill-name">Rent</div>
+                <div class="phone-bill-due">Due Apr 1</div>
+            </div>
+            <div class="phone-bill-amount">
+                <div class="phone-bill-price">$1,200</div>
+                <div class="phone-bill-pct">94% funded</div>
+            </div>
+        </div>
+
+        <div class="phone-bill">
+            <div class="phone-bill-icon">&#x1F697;</div>
+            <div class="phone-bill-info">
+                <div class="phone-bill-name">Car Payment</div>
+                <div class="phone-bill-due">Due Apr 10</div>
+            </div>
+            <div class="phone-bill-amount">
+                <div class="phone-bill-price">$285</div>
+                <div class="phone-bill-pct">78% funded</div>
+            </div>
+        </div>
+
+        <div class="phone-bill">
+            <div class="phone-bill-icon">&#x26A1;</div>
+            <div class="phone-bill-info">
+                <div class="phone-bill-name">Electric Bill</div>
+                <div class="phone-bill-due">Due Apr 15</div>
+            </div>
+            <div class="phone-bill-amount">
+                <div class="phone-bill-price">$160</div>
+                <div class="phone-bill-pct">62% funded</div>
+            </div>
+        </div>
+
+        <div class="phone-bill">
+            <div class="phone-bill-icon">&#x1F6E1;&#xFE0F;</div>
+            <div class="phone-bill-info">
+                <div class="phone-bill-name">Insurance</div>
+                <div class="phone-bill-due">Due Apr 20</div>
+            </div>
+            <div class="phone-bill-amount">
+                <div class="phone-bill-price">$180</div>
+                <div class="phone-bill-pct">45% funded</div>
+            </div>
+        </div>
+
+        <div class="phone-toast green">&#x2713; $40 saved today &middot; Rent fully funded!</div>
+    </div>
+</section>
+
+<!-- ═══════════ PARTNERS ═══════════ -->
+<section class="partners">
+    <div class="container">
+        <div class="partners-label">Backed by industry-leading partners</div>
+        <div class="partners-logos">
+            <span>Plaid</span>
+            <span>Stripe</span>
+            <span>AWS</span>
+            <span>Auth0</span>
+            <span>Dwolla</span>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ PROBLEM ═══════════ -->
+<section class="section" style="background: var(--bg-light);">
+    <div class="container">
+        <div class="section-label">The Problem</div>
+        <h2 class="section-title">Your paycheck and your bills are out of sync</h2>
+        <p class="section-subtitle">You earn biweekly but bills hit monthly. That timing gap causes overdrafts, late fees, and constant stress.</p>
+
+        <div class="problem-stats">
+            <div class="problem-card">
+                <div class="stat-value">78%</div>
+                <div class="stat-desc">of Americans live paycheck to paycheck, struggling to cover monthly obligations</div>
+            </div>
+            <div class="problem-card">
+                <div class="stat-value">$170B</div>
+                <div class="stat-desc">lost annually to late fees, overdrafts, and penalty charges in the US</div>
+            </div>
+            <div class="problem-card">
+                <div class="stat-value">56%</div>
+                <div class="stat-desc">of adults can't cover a $1,000 emergency expense without going into debt</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ HOW IT WORKS ═══════════ -->
+<section class="section" id="how-it-works">
+    <div class="container">
+        <div class="section-label">How It Works</div>
+        <h2 class="section-title">Three steps to financial peace of mind</h2>
+        <p class="section-subtitle">Set up in 3 minutes and never worry about a bill again</p>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Link Your Bills</h3>
+                <p>Connect your bank account and we auto-detect your recurring bills. Or add them manually in seconds.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Choose Your Rhythm</h3>
+                <p>Pick daily, weekly, or biweekly micro-contributions that align with when you get paid.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>We Handle the Rest</h3>
+                <p>Money accumulates automatically. When bills come due, we pay them on time, every time.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ COMPARISON ═══════════ -->
+<section class="section" style="background: var(--bg-light);">
+    <div class="container">
+        <div class="section-label">The Difference</div>
+        <h2 class="section-title">See the Fractional effect</h2>
+        <p class="section-subtitle">Same bills, completely different experience</p>
+
+        <div class="comparison">
+            <div class="comparison-card bad">
+                <h3>Without Fractional</h3>
+                <div class="comparison-row"><span class="label">Rent hits on the 1st</span><span class="value">-$1,200</span></div>
+                <div class="comparison-row"><span class="label">Car payment on the 10th</span><span class="value">-$285</span></div>
+                <div class="comparison-row"><span class="label">Electric bill on the 15th</span><span class="value">-$160</span></div>
+                <div class="comparison-row"><span class="label">Late fee (overdrafted)</span><span class="value">-$35</span></div>
+                <div class="comparison-row"><span class="label">Stress level</span><span class="value">High</span></div>
+            </div>
+            <div class="comparison-arrow">&rarr;</div>
+            <div class="comparison-card good">
+                <h3>With Fractional</h3>
+                <div class="comparison-row"><span class="label">Daily micro-contribution</span><span class="value">$58.17</span></div>
+                <div class="comparison-row"><span class="label">All bills auto-funded</span><span class="value">&#x2713;</span></div>
+                <div class="comparison-row"><span class="label">Payments made on time</span><span class="value">&#x2713;</span></div>
+                <div class="comparison-row"><span class="label">Late fees</span><span class="value">$0</span></div>
+                <div class="comparison-row"><span class="label">Stress level</span><span class="value">Zen</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ FEATURES ═══════════ -->
+<section class="section" id="features">
+    <div class="container">
+        <div class="section-label">Features</div>
+        <h2 class="section-title">Everything you need to master your bills</h2>
+        <p class="section-subtitle">Smart tools that work around your schedule, not against it</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F4B0;</div>
+                <h3>Micro-Contributions</h3>
+                <p>Break any bill into daily, weekly, or biweekly amounts that feel effortless to save.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F50D;</div>
+                <h3>Smart Bill Detection</h3>
+                <p>Connect your bank and we automatically find and categorize your recurring bills.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F514;</div>
+                <h3>Overdraft Alerts</h3>
+                <p>Get notified before your balance gets low. We'll suggest adjustments to keep you on track.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F4CA;</div>
+                <h3>Spending Insights</h3>
+                <p>See where your money goes with clear breakdowns and trend analysis over time.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F512;</div>
+                <h3>Bank-Level Security</h3>
+                <p>256-bit encryption, SOC 2 compliant, and powered by Plaid for secure bank connections.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#x1F4C5;</div>
+                <h3>Pay Schedule Sync</h3>
+                <p>Contributions automatically align with your payday so you never over-extend.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ PRICING ═══════════ -->
+<section class="section" id="pricing" style="background: var(--bg-light);">
+    <div class="container">
+        <div class="section-label">Pricing</div>
+        <h2 class="section-title">Simple pricing, no surprises</h2>
+        <p class="section-subtitle">No monthly subscriptions. No hidden fees. You only pay when you use Fractional.</p>
+
+        <div class="pricing-card-wrapper">
+            <div class="pricing-card">
+                <div class="pricing-label">Pay As You Go</div>
+                <div class="pricing-rate">1.5%</div>
+                <div class="pricing-rate-label">transaction fee per contribution &amp; bill payment</div>
+
+                <div class="pricing-divider"></div>
+
+                <p class="pricing-desc">
+                    We charge a small 1.5% fee on every contribution and bill payment. No monthly fees, no plan limits, no hidden charges. You only pay for what you use.
+                </p>
+
+                <ul class="pricing-features">
+                    <li><span class="check">&#x2713;</span> Unlimited bills tracked</li>
+                    <li><span class="check">&#x2713;</span> Daily, weekly, or biweekly cadence</li>
+                    <li><span class="check">&#x2713;</span> Smart bill auto-detection</li>
+                    <li><span class="check">&#x2713;</span> Overdraft protection alerts</li>
+                    <li><span class="check">&#x2713;</span> Financial insights &amp; trends</li>
+                    <li><span class="check">&#x2713;</span> Pay schedule sync</li>
+                    <li><span class="check">&#x2713;</span> Priority support</li>
+                </ul>
+
+                <div class="pricing-example">
+                    <div class="pricing-example-title">Example: $150 Electric Bill</div>
+                    <div class="pricing-example-row">
+                        <span class="label">Bill amount</span>
+                        <span class="value">$150.00</span>
+                    </div>
+                    <div class="pricing-example-row">
+                        <span class="label">Transaction fee (1.5%)</span>
+                        <span class="value">$2.25</span>
+                    </div>
+                    <div class="pricing-example-row highlight">
+                        <span class="label">Total charged</span>
+                        <span class="value">$152.25</span>
+                    </div>
+                </div>
+
+                <a href="https://app.fbpsapp.com/"><button class="pricing-cta">Add the app to your Home Screen</button></a>
+                <p class="pricing-note">Free to join. No credit card required.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ FAQ ═══════════ -->
+<section class="section" id="faq">
+    <div class="container">
+        <div class="section-label">FAQ</div>
+        <h2 class="section-title">Common questions</h2>
+        <p class="section-subtitle">Everything you need to know about Fractional</p>
+
+        <div class="faq-list">
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    <span>How does Fractional Bill Pay work?</span>
+                    <span class="icon">+</span>
+                </button>
+                <div class="faq-answer">
+                    <p>You link your recurring bills (rent, car payment, utilities, etc.) and choose how often you want to contribute: daily, weekly, or biweekly. We automatically set aside small amounts each period, and when your bill comes due, we pay it on time using the accumulated funds.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    <span>How much does Fractional cost?</span>
+                    <span class="icon">+</span>
+                </button>
+                <div class="faq-answer">
+                    <p>Fractional charges a flat 1.5% transaction fee on each contribution and bill payment. There are no monthly subscriptions, no plan tiers, and no hidden fees. For example, paying a $200 bill costs just $3.00 in fees. You only pay when you use the service.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    <span>Is my money safe?</span>
+                    <span class="icon">+</span>
+                </button>
+                <div class="faq-answer">
+                    <p>Absolutely. Your funds are held in FDIC-insured accounts through our banking partner. We use bank-level 256-bit encryption, and our platform is SOC 2 Type II compliant. We connect to your bank securely through Plaid, the same technology used by Venmo, Robinhood, and Coinbase.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    <span>What if I don't have enough money for a contribution?</span>
+                    <span class="icon">+</span>
+                </button>
+                <div class="faq-answer">
+                    <p>We'll never overdraft your account. If your balance is low, we skip the contribution and notify you. You can make it up later or adjust your schedule. Our overdraft protection feature monitors your balance and pauses contributions automatically when needed.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    <span>Can I cancel or change my contributions anytime?</span>
+                    <span class="icon">+</span>
+                </button>
+                <div class="faq-answer">
+                    <p>Yes, you have full control. Pause, adjust, or cancel any contribution schedule at any time with no penalties. Your accumulated funds remain in your account and can be withdrawn or redirected to other bills.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    <span>How is this different from a savings account?</span>
+                    <span class="icon">+</span>
+                </button>
+                <div class="faq-answer">
+                    <p>Unlike a general savings account, Fractional creates purpose-specific "buckets" for each bill. Every dollar is earmarked for a specific obligation, and payments are automated. Think of it as a smart layer between your income and your bills that ensures the right amount is always ready at the right time.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    <span>What bills can I add?</span>
+                    <span class="icon">+</span>
+                </button>
+                <div class="faq-answer">
+                    <p>Any recurring payment: rent/mortgage, car payments, insurance, utilities, subscriptions (Netflix, Spotify, gym), phone bills, student loans, and more. If it recurs monthly, Fractional can manage it.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ CTA ═══════════ -->
+<section class="cta-section" id="signup">
+    <div class="container">
+        <h2>Ready to stop stressing about bills?</h2>
+        <p>Join thousands signing up for early access. Be the first to experience financial peace of mind.</p>
+        <form class="cta-form" onsubmit="event.preventDefault(); alert('Thanks for signing up! We\'ll be in touch.');">
+            <input type="email" placeholder="Enter your email" required />
+            <button type="submit">Join Waitlist</button>
+        </form>
+        <a href="https://app.fbpsapp.com/" class="fbps-btn fbps-btn-primary fbps-app-download-cta">Add the app to your Home Screen</a>
+        <p class="cta-note">Free to join. No credit card required. We'll notify you at launch.</p>
+    </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer>
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="logo"><span class="brand-mark">F</span> <span>FBPS</span></div>
+                <p>Break your bills into bite-sized payments and never miss a due date again.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="#how-it-works">How It Works</a></li>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="#faq">FAQ</a></li>
+                    <li><a href="https://app.fbpsapp.com/">Add the app to your Home Screen</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Press</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">Security</a></li>
+                    <li><a href="mailto:founder@fractionalbillpay.com">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 Fractional Bill Pay Solutions, Inc. All rights reserved. Made with care for your financial peace of mind.
+        </div>
+    </div>
+</footer>
+
+<script>
+  (function () {
+    var title = 'FBPS | Fractional Bill Pay - Break Your Bills Into Bite-Sized Payments';
+    document.title = title;
+
+    var site = document.getElementById('fbps-site');
+    var host = site ? site.closest('section, article, main, .page-section, .fe-block, .sqs-block, .sqs-layout') : null;
+    while (host && !host.classList.contains('page-section') && host.parentElement) {
+      host = host.parentElement.closest('section, article, main, .page-section, .fe-block, .sqs-block, .sqs-layout');
+    }
+    if (host) host.classList.add('fbps-page-host');
+
+    var faviconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%2300D998"/><text x="32" y="43" text-anchor="middle" font-family="Georgia, serif" font-size="36" font-weight="700" fill="%23FFFFFF">F</text></svg>';
+    var faviconHref = 'data:image/svg+xml,' + faviconSvg;
+    var favicon = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]') || document.createElement('link');
+    favicon.setAttribute('rel', 'icon');
+    favicon.setAttribute('type', 'image/svg+xml');
+    favicon.setAttribute('href', faviconHref);
+    document.head.appendChild(favicon);
+
+    var appleIcon = document.querySelector('link[rel="apple-touch-icon"]') || document.createElement('link');
+    appleIcon.setAttribute('rel', 'apple-touch-icon');
+    appleIcon.setAttribute('href', faviconHref);
+    document.head.appendChild(appleIcon);
+  })();
+</script>
+</div>
+
+</body>
+</html>

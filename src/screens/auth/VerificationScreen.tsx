@@ -9,33 +9,39 @@ import {
   Alert,
 } from 'react-native';
 import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '@/theme';
+import { useStore } from '@/hooks/useStore';
 
 interface VerificationScreenProps {
   navigation: any;
   route: any;
 }
 
-type VerificationMethod = 'email' | 'phone' | null;
-
 export function VerificationScreen({ navigation, route }: VerificationScreenProps) {
   const email = route?.params?.email || '';
-  const [selectedMethod, setSelectedMethod] = useState<VerificationMethod>('email');
   const [loading, setLoading] = useState(false);
+  const { sendOTP } = useStore();
 
-  const handleContinue = () => {
-    if (!selectedMethod) {
-      Alert.alert('Error', 'Please select a verification method');
+  const handleResend = async () => {
+    if (!email) {
+      Alert.alert('Email Missing', 'Please go back and enter your email address again.');
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      navigation.navigate('OTP', { method: selectedMethod, email });
-    }, 1000);
+    const result = await sendOTP(email);
+    setLoading(false);
+
+    if (result?.error) {
+      Alert.alert('Unable to Resend', result.error);
+      return;
+    }
+
+    Alert.alert('Email Sent', 'We sent another confirmation link to your email.');
   };
 
-  const isSelected = (method: VerificationMethod) => selectedMethod === method;
+  const handleContinue = () => {
+    navigation.navigate('Login', { email });
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -43,7 +49,6 @@ export function VerificationScreen({ navigation, route }: VerificationScreenProp
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Back Button */}
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -52,50 +57,44 @@ export function VerificationScreen({ navigation, route }: VerificationScreenProp
           <Text style={styles.backButtonText}>{'<'}</Text>
         </TouchableOpacity>
 
-        {/* Title Section */}
         <View style={styles.titleSection}>
-          <Text style={styles.title}>Verification</Text>
-          <Text style={styles.subtitle}>Verify your email address to finish creating your account</Text>
+          <Text style={styles.title}>Confirm Your Email</Text>
+          <Text style={styles.subtitle}>
+            Supabase sent a confirmation link to {email || 'your email address'}.
+          </Text>
+          <Text style={styles.description}>
+            Open that email and click the confirmation link. After your email is confirmed, come back here and log in with your email and password.
+          </Text>
         </View>
 
-        {/* Option Cards */}
-        <View style={styles.optionsContainer}>
-          {/* Email Option */}
-          <TouchableOpacity
-            style={[
-              styles.optionCard,
-              isSelected('email') && styles.optionCardSelected,
-            ]}
-            onPress={() => setSelectedMethod('email')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.optionContent}>
-              <View style={styles.iconCircle}>
-                <Text style={styles.iconText}>✉️</Text>
-              </View>
-              <View style={styles.optionTextContainer}>
-                <Text style={styles.optionTitle}>Email</Text>
-                <Text style={styles.optionDescription}>Receive code via email</Text>
-              </View>
-            </View>
-            {isSelected('email') && (
-              <View style={styles.checkmark}>
-                <Text style={styles.checkmarkText}>✓</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
+        <View style={styles.infoCard}>
+          <View style={styles.iconCircle}>
+            <Text style={styles.iconText}>@</Text>
+          </View>
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoTitle}>No code needed</Text>
+            <Text style={styles.infoDescription}>
+              This app uses Supabase's email confirmation link instead of a six-digit verification code.
+            </Text>
+          </View>
         </View>
 
-        {/* Continue Button */}
         <TouchableOpacity
-          style={[styles.continueButton, loading && styles.continueButtonDisabled]}
+          style={styles.continueButton}
           onPress={handleContinue}
-          disabled={loading || !selectedMethod}
           activeOpacity={0.8}
         >
-          <Text style={styles.continueButtonText}>
-            {loading ? 'Processing...' : 'Continue'}
+          <Text style={styles.continueButtonText}>Continue to Log In</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.secondaryButton, loading && styles.secondaryButtonDisabled]}
+          onPress={handleResend}
+          disabled={loading}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.secondaryButtonText}>
+            {loading ? 'Sending...' : 'Resend Confirmation Email'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -140,30 +139,23 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: fontSizes.md,
     color: colors.textSecondary,
+    marginBottom: spacing.md,
   },
-  optionsContainer: {
-    gap: spacing.lg,
-    marginBottom: spacing['3xl'],
+  description: {
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
+    lineHeight: 20,
   },
-  optionCard: {
+  infoCard: {
     backgroundColor: colors.backgroundCard,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.border,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  optionCardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: 'rgba(0, 217, 152, 0.05)',
-  },
-  optionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+    marginBottom: spacing['3xl'],
   },
   iconCircle: {
     width: 50,
@@ -176,32 +168,22 @@ const styles = StyleSheet.create({
   },
   iconText: {
     fontSize: fontSizes.xl,
+    color: colors.primary,
+    fontWeight: fontWeights.bold as any,
   },
-  optionTextContainer: {
+  infoTextContainer: {
     flex: 1,
   },
-  optionTitle: {
+  infoTitle: {
     fontSize: fontSizes.md,
     fontWeight: fontWeights.semibold as any,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
   },
-  optionDescription: {
+  infoDescription: {
     fontSize: fontSizes.sm,
     color: colors.textSecondary,
-  },
-  checkmark: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkmarkText: {
-    fontSize: fontSizes.md,
-    color: colors.background,
-    fontWeight: fontWeights.bold as any,
+    lineHeight: 20,
   },
   continueButton: {
     backgroundColor: colors.primary,
@@ -209,13 +191,28 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  continueButtonDisabled: {
-    opacity: 0.5,
+    marginBottom: spacing.md,
   },
   continueButtonText: {
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.semibold as any,
     color: colors.background,
+  },
+  secondaryButton: {
+    backgroundColor: colors.backgroundCard,
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  secondaryButtonDisabled: {
+    opacity: 0.6,
+  },
+  secondaryButtonText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold as any,
+    color: colors.textPrimary,
   },
 });

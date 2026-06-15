@@ -8,13 +8,39 @@ export type LinkedAccount = {
   account_mask: string;
   account_type: string | null;
   account_subtype: string | null;
+  balance_available: number | null;
+  balance_current: number | null;
+  balance_iso_currency_code: string | null;
+  balance_last_synced_at: string | null;
   is_primary: boolean;
   is_active: boolean;
+  account_fingerprint?: string | null;
+  plaid_persistent_account_id?: string | null;
+  unit_counterparty_id?: string | null;
+  unit_counterparty_status?: string | null;
 };
 
 export type PlaidInstitution = {
   name?: string;
   institution_id?: string;
+};
+
+export type PlaidLinkAccount = {
+  id?: string;
+  name?: string;
+  mask?: string;
+  type?: string;
+  subtype?: string;
+};
+
+export type ExchangePublicTokenResponse = {
+  success: boolean;
+  accounts: LinkedAccount[];
+  duplicate?: boolean;
+  error?: string;
+  message?: string;
+  saved_count?: number;
+  duplicate_count?: number;
 };
 
 declare global {
@@ -29,33 +55,20 @@ declare global {
   }
 }
 
-const mockAccounts: LinkedAccount[] = [
-  {
-    id: 'mock-1',
-    institution_name: 'Chase Bank',
-    account_name: 'Total Checking',
-    account_mask: '4832',
-    account_type: 'depository',
-    account_subtype: 'checking',
-    is_primary: true,
-    is_active: true,
-  },
-  {
-    id: 'mock-2',
-    institution_name: 'Bank of America',
-    account_name: 'Savings',
-    account_mask: '9271',
-    account_type: 'depository',
-    account_subtype: 'savings',
-    is_primary: false,
-    is_active: true,
-  },
-];
-
 function assertNoFunctionError(error: any) {
   if (error) {
     throw new Error(error.message || 'Plaid request failed');
   }
+}
+
+function isMissingColumnError(error: any, column: string) {
+  const message = `${error?.message || ''} ${error?.details || ''}`;
+  return (
+    message.includes(`'${column}' column`) ||
+    message.includes(`column ${column}`) ||
+    message.includes(`column "${column}"`) ||
+    (message.includes(column) && (message.includes('does not exist') || message.includes('schema cache')))
+  );
 }
 
 async function invokePlaidFunction<T>(name: string, body?: Record<string, unknown>): Promise<T> {
@@ -70,31 +83,73 @@ export async function createLinkToken() {
   return data.link_token;
 }
 
-export async function exchangePublicToken(publicToken: string, metadata?: { institution?: PlaidInstitution }) {
-  return invokePlaidFunction('plaid-exchange-public-token', {
+export async function exchangePublicToken(
+  publicToken: string,
+  metadata?: { institution?: PlaidInstitution; accounts?: PlaidLinkAccount[] }
+) {
+  const data = await invokePlaidFunction<ExchangePublicTokenResponse>('plaid-exchange-public-token', {
     public_token: publicToken,
     institution: metadata?.institution,
+    accounts: metadata?.accounts,
   });
+
+  if (data.error) throw new Error(data.error);
+  return data;
 }
 
 export async function getLinkedAccounts() {
-  const { data, error } = await supabase
+  const baseColumns =
+    'id,institution_name,account_name,account_mask,account_type,account_subtype,balance_available,balance_current,balance_iso_currency_code,balance_last_synced_at,is_primary,is_active';
+  const optionalColumns = ',account_fingerprint,plaid_persistent_account_id,unit_counterparty_id,unit_counterparty_status';
+
+  let { data, error } = await (supabase as any)
     .from('linked_accounts')
-    .select('id,institution_name,account_name,account_mask,account_type,account_subtype,is_primary,is_active')
+    .select(`${baseColumns}${optionalColumns}`)
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
-  if (error) return mockAccounts;
-  return (data || []) as LinkedAccount[];
+  if (
+    isMissingColumnError(error, 'account_fingerprint') ||
+    isMissingColumnError(error, 'plaid_persistent_account_id') ||
+    isMissingColumnError(error, 'unit_counterparty_id') ||
+    isMissingColumnError(error, 'unit_counterparty_status')
+  ) {
+    const retry = await (supabase as any)
+      .from('linked_accounts')
+      .select(baseColumns)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    data = retry.data;
+    error = retry.error;
+  }
+
+  if (error) throw new Error(error.message || 'Unable to load linked accounts');
+  return (data || []).map((account: LinkedAccount) => ({
+    ...account,
+    account_fingerprint: account.account_fingerprint ?? null,
+    plaid_persistent_account_id: account.plaid_persistent_account_id ?? null,
+    unit_counterparty_id: account.unit_counterparty_id ?? null,
+    unit_counterparty_status: account.unit_counterparty_status ?? null,
+  })) as LinkedAccount[];
+}
+
+export async function refreshLinkedAccountBalances() {
+  const { data, error } = await supabase.functions.invoke('plaid-refresh-balances');
+  if (error) throw new Error(error.message || 'Failed to refresh balances');
+  return data;
 }
 
 export async function unlinkAccount(id: string) {
-  const { error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('linked_accounts')
     .update({ is_active: false })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
 
   assertNoFunctionError(error);
+  if (!data) throw new Error('Bank account was not found or has already been removed.');
   return { success: true };
 }
 
@@ -102,7 +157,7 @@ export async function setPrimaryAccount(id: string) {
   const accounts = await getLinkedAccounts();
   await Promise.all(
     accounts.map((account) =>
-      supabase
+      (supabase as any)
         .from('linked_accounts')
         .update({ is_primary: account.id === id })
         .eq('id', account.id)

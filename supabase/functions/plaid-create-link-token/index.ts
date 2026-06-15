@@ -1,6 +1,6 @@
-import {plaidRequest} from "../_shared/plaid";
-import {handleCors, jsonResponse} from "../_shared/cors";
-import {requireUser} from "../_shared/supabase";
+import {plaidRequest} from "../_shared/plaid.ts";
+import {handleCors, jsonResponse} from "../_shared/cors.ts";
+import {requireUser} from "../_shared/supabase.ts";
 
 
 Deno.serve(async (req) => {
@@ -15,9 +15,10 @@ Deno.serve(async (req) => {
         client_user_id: user.id,
       },
       client_name: 'Fractional Bill Pay',
-      products: ['transactions'],
+      products: ['auth', 'transactions'],
       country_codes: ['US'],
       language: 'en',
+      redirect_uri: Deno.env.get('PLAID_REDIRECT_URI') || undefined,
       webhook: Deno.env.get('PLAID_WEBHOOK_URL') || undefined,
       transactions: {
         days_requested: 180,

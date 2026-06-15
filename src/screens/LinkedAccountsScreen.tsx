@@ -1,102 +1,112 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { colors, spacing, fontSizes, borderRadius } from '../theme';
+import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '../components';
+import { colors, spacing, fontSizes, borderRadius } from '../theme';
 import {
-  getLinkedAccounts, unlinkAccount, setPrimaryAccount, LinkedAccount,
+  getLinkedAccounts,
+  LinkedAccount,
+  setPrimaryAccount,
+  unlinkAccount,
 } from '../services/plaid';
+import { confirmDestructiveAction } from '../utils/confirmAction';
+import { ConfirmBankRemovalModal } from '../components/ConfirmBankRemovalModal';
 
 interface Props {
   navigation: any;
 }
 
-// Bank logo emoji mapping
-const BANK_ICONS: Record<string, string> = {
-  'Chase': '🟦',
-  'Bank of America': '🟥',
-  'Wells Fargo': '🟨',
-  'Citi': '🔵',
-  'Capital One': '🟧',
-  'default': '🏦',
-};
+function formatBalance(account: LinkedAccount) {
+  const amount = account.balance_current ?? account.balance_available;
+  if (amount === null || amount === undefined) return 'Balance unavailable';
 
-function getBankIcon(name: string): string {
-  for (const [key, icon] of Object.entries(BANK_ICONS)) {
-    if (name.toLowerCase().includes(key.toLowerCase())) return icon;
-  }
-  return BANK_ICONS.default;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: account.balance_iso_currency_code || 'USD',
+  }).format(amount);
 }
 
 function getAccountTypeLabel(type: string | null, subtype: string | null): string {
-  if (subtype) {
-    return subtype.charAt(0).toUpperCase() + subtype.slice(1).replace(/_/g, ' ');
-  }
-  if (type) {
-    return type.charAt(0).toUpperCase() + type.slice(1);
-  }
+  if (subtype) return subtype.charAt(0).toUpperCase() + subtype.slice(1).replace(/_/g, ' ');
+  if (type) return type.charAt(0).toUpperCase() + type.slice(1);
   return 'Account';
 }
 
 export function LinkedAccountsScreen({ navigation }: Props) {
   const [accounts, setAccounts] = useState<LinkedAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [removingAccountId, setRemovingAccountId] = useState<string | null>(null);
+  const [accountPendingRemoval, setAccountPendingRemoval] = useState<LinkedAccount | null>(null);
 
-  // For MVP with mock data, use static accounts
-  useEffect(() => {
-    loadAccounts();
+  const loadAccounts = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      setAccounts(await getLinkedAccounts());
+    } catch (err) {
+      setAccounts([]);
+      setError(err instanceof Error ? err.message : 'Unable to load linked accounts.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const loadAccounts = async () => {
-    setLoading(true);
-    try {
-      const data = await getLinkedAccounts();
-      setAccounts(data);
-    } catch (err) {
-      // Fallback to mock data for development
-      setAccounts([
-        {
-          id: 'mock-1',
-          institution_name: 'Chase Bank',
-          account_name: 'Total Checking',
-          account_mask: '4832',
-          account_type: 'depository',
-          account_subtype: 'checking',
-          is_primary: true,
-          is_active: true,
-        },
-        {
-          id: 'mock-2',
-          institution_name: 'Chase Bank',
-          account_name: 'Savings',
-          account_mask: '9271',
-          account_type: 'depository',
-          account_subtype: 'savings',
-          is_primary: false,
-          is_active: true,
-        },
-      ]);
-    }
-    setLoading(false);
-  };
+  useFocusEffect(
+    useCallback(() => {
+      loadAccounts();
+    }, [loadAccounts])
+  );
 
-  const handleUnlink = (account: LinkedAccount) => {
+  const handleUnlink = async (account: LinkedAccount) => {
+    const accountLabel = `${account.account_name || 'this account'}${account.account_mask ? ` (••${account.account_mask})` : ''}`;
+    const confirmed = await confirmDestructiveAction({
+      title: 'Remove Bank Account',
+      message: `Remove ${accountLabel}?`,
+      confirmText: 'Remove',
+    });
+
+    if (!confirmed) return;
+
+    setRemovingAccountId(account.id);
+    try {
+      await unlinkAccount(account.id);
+      setAccounts((prev) => prev.filter((a) => a.id !== account.id));
+    } catch (err) {
+      Alert.alert(
+        'Unable to unlink account',
+        err instanceof Error ? err.message : 'Please try again.'
+      );
+    } finally {
+      setRemovingAccountId(null);
+    }
+
+    return;
     Alert.alert(
-      'Unlink Account',
-      `Are you sure you want to unlink ${account.account_name} (••${account.account_mask})?`,
+      'Remove Bank Account',
+      `Remove ${account.account_name}${account.account_mask ? ` (••${account.account_mask})` : ''}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Unlink',
+          text: 'Remove',
           style: 'destructive',
           onPress: async () => {
             try {
               await unlinkAccount(account.id);
               setAccounts((prev) => prev.filter((a) => a.id !== account.id));
             } catch (err) {
-              // For mock data, just remove locally
-              setAccounts((prev) => prev.filter((a) => a.id !== account.id));
+              Alert.alert(
+                'Unable to unlink account',
+                err instanceof Error ? err.message : 'Please try again.'
+              );
             }
           },
         },
@@ -107,69 +117,91 @@ export function LinkedAccountsScreen({ navigation }: Props) {
   const handleSetPrimary = async (account: LinkedAccount) => {
     try {
       await setPrimaryAccount(account.id);
-    } catch {
-      // Mock: update locally
+      setAccounts((prev) => prev.map((a) => ({ ...a, is_primary: a.id === account.id })));
+    } catch (err) {
+      Alert.alert(
+        'Unable to update primary account',
+        err instanceof Error ? err.message : 'Please try again.'
+      );
     }
-    setAccounts((prev) =>
-      prev.map((a) => ({ ...a, is_primary: a.id === account.id }))
-    );
+  };
+
+  const confirmRemoveAccount = async () => {
+    if (!accountPendingRemoval) return;
+
+    setRemovingAccountId(accountPendingRemoval.id);
+    try {
+      await unlinkAccount(accountPendingRemoval.id);
+      setAccounts((prev) => prev.filter((a) => a.id !== accountPendingRemoval.id));
+      setAccountPendingRemoval(null);
+    } catch (err) {
+      Alert.alert(
+        'Unable to unlink account',
+        err instanceof Error ? err.message : 'Please try again.'
+      );
+    } finally {
+      setRemovingAccountId(null);
+    }
   };
 
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.backBtn}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Linked Accounts</Text>
-          <View style={{ width: 50 }} />
+          <View style={{ width: 52 }} />
         </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.teal} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : accounts.length === 0 ? (
-          /* Empty state */
           <View style={styles.emptyState}>
-            <Text style={{ fontSize: 48, marginBottom: spacing.lg }}>🏦</Text>
+            <Text style={styles.emptyIcon}>🏦</Text>
             <Text style={styles.emptyTitle}>No accounts linked</Text>
             <Text style={styles.emptySubtitle}>
-              Link your bank account to auto-detect bills and fund them automatically.
+              {error || 'Link your bank account to view balances and fund bills.'}
             </Text>
-            <Button
-              title="Link Your First Account"
-              onPress={() => navigation.navigate('LinkBank')}
-              size="lg"
-            />
+            {error ? (
+              <Button title="Try Again" onPress={loadAccounts} size="lg" />
+            ) : (
+              <Button
+                title="Connect Your First Bank"
+                onPress={() => navigation.navigate('LinkBank', { autoStart: true })}
+                size="lg"
+              />
+            )}
           </View>
         ) : (
-          /* Accounts list */
           <View style={styles.list}>
-            {accounts.map((account) => (
+            {accounts.map((account) => {
+              const isRemoving = removingAccountId === account.id;
+
+              return (
               <View key={account.id} style={styles.accountCard}>
-                <View style={styles.accountTop}>
-                  <View style={styles.accountLeft}>
-                    <Text style={styles.bankIcon}>
-                      {getBankIcon(account.institution_name)}
-                    </Text>
-                    <View>
-                      <View style={styles.nameRow}>
-                        <Text style={styles.accountName}>{account.account_name}</Text>
-                        {account.is_primary && (
-                          <View style={styles.primaryBadge}>
-                            <Text style={styles.primaryBadgeText}>Primary</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.bankName}>{account.institution_name}</Text>
-                      <Text style={styles.accountMeta}>
-                        {getAccountTypeLabel(account.account_type, account.account_subtype)}
-                        {account.account_mask ? ` •••• ${account.account_mask}` : ''}
-                      </Text>
+                <View style={styles.nameRow}>
+                  <View style={styles.accountIcon}>
+                    <Text style={styles.accountIconText}>🏦</Text>
+                  </View>
+                  <View style={styles.accountText}>
+                    <View style={styles.titleRow}>
+                      <Text style={styles.accountName}>{account.account_name}</Text>
+                      {account.is_primary && (
+                        <View style={styles.primaryBadge}>
+                          <Text style={styles.primaryBadgeText}>Primary</Text>
+                        </View>
+                      )}
                     </View>
+                    <Text style={styles.bankName}>{account.institution_name}</Text>
+                    <Text style={styles.accountMeta}>
+                      {getAccountTypeLabel(account.account_type, account.account_subtype)}
+                      {account.account_mask ? ` •••• ${account.account_mask}` : ''}
+                    </Text>
+                    <Text style={styles.balanceText}>{formatBalance(account)}</Text>
                   </View>
                 </View>
 
@@ -183,45 +215,51 @@ export function LinkedAccountsScreen({ navigation }: Props) {
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
-                    style={[styles.actionBtn, styles.actionBtnDanger]}
-                    onPress={() => handleUnlink(account)}
+                    style={[styles.actionBtn, styles.actionBtnDanger, isRemoving && styles.disabledAction]}
+                    onPress={() => setAccountPendingRemoval(account)}
+                    disabled={!!removingAccountId}
                   >
-                    <Text style={styles.actionBtnTextDanger}>Unlink</Text>
+                    <Text style={styles.actionBtnTextDanger}>
+                      {isRemoving ? 'Removing...' : 'Remove'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
-            ))}
+              );
+            })}
 
-            {/* Add another account */}
             <TouchableOpacity
               style={styles.addAccountBtn}
-              onPress={() => navigation.navigate('LinkBank')}
+              onPress={() => navigation.navigate('LinkBank', { autoStart: true })}
             >
               <Text style={styles.addAccountPlus}>+</Text>
-              <Text style={styles.addAccountText}>Link Another Account</Text>
+              <Text style={styles.addAccountText}>Connect Another Bank</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Info card */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>🔒 Your data is secure</Text>
+          <Text style={styles.infoTitle}>Your data is secure</Text>
           <Text style={styles.infoText}>
-            We use Plaid, the same technology trusted by Venmo, Robinhood, and Coinbase, to securely connect to your bank. We never store your banking credentials and can only view transactions — we cannot move money without your explicit permission.
+            Bank connections are handled through Plaid. We never store your banking credentials.
           </Text>
         </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      <ConfirmBankRemovalModal
+        visible={!!accountPendingRemoval}
+        account={accountPendingRemoval}
+        loading={!!removingAccountId}
+        onCancel={() => setAccountPendingRemoval(null)}
+        onConfirm={confirmRemoveAccount}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.lightBg,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -229,97 +267,63 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: 60,
     paddingBottom: spacing.lg,
-    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backBtn: {
-    color: colors.teal,
-    fontSize: fontSizes.md,
-  },
-  headerTitle: {
-    fontWeight: '700',
-    color: colors.navy,
-    fontSize: fontSizes.lg,
-  },
-  loadingContainer: {
-    paddingTop: 100,
-    alignItems: 'center',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingTop: 80,
-    paddingHorizontal: spacing['3xl'],
-  },
+  backBtn: { color: colors.primary, fontSize: fontSizes.md, fontWeight: '600' },
+  headerTitle: { fontWeight: '700', color: colors.textPrimary, fontSize: fontSizes.lg },
+  loadingContainer: { paddingTop: 100, alignItems: 'center' },
+  emptyState: { alignItems: 'center', paddingTop: 80, paddingHorizontal: spacing['3xl'] },
+  emptyIcon: { fontSize: 48, marginBottom: spacing.lg },
   emptyTitle: {
     fontSize: fontSizes.xl,
     fontWeight: '700',
-    color: colors.navy,
+    color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   emptySubtitle: {
     fontSize: fontSizes.md,
-    color: colors.mid,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing['2xl'],
   },
-  list: {
-    padding: spacing.xl,
-  },
+  list: { padding: spacing.xl },
   accountCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  accountTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  accountLeft: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    flex: 1,
-  },
-  bankIcon: {
-    fontSize: 28,
-    marginTop: 2,
-  },
-  nameRow: {
-    flexDirection: 'row',
+  nameRow: { flexDirection: 'row', gap: spacing.md },
+  accountIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.backgroundCardLight,
     alignItems: 'center',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
-  accountName: {
-    fontSize: fontSizes.md,
-    fontWeight: '700',
-    color: colors.navy,
-  },
+  accountIconText: { fontSize: 24 },
+  accountText: { flex: 1 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
+  accountName: { fontSize: fontSizes.md, fontWeight: '700', color: colors.textPrimary },
   primaryBadge: {
-    backgroundColor: colors.tealBg,
+    backgroundColor: 'rgba(0, 217, 152, 0.15)',
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.full,
   },
-  primaryBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.teal,
-  },
-  bankName: {
-    fontSize: fontSizes.sm,
-    color: colors.dark,
-    marginTop: 2,
-  },
-  accountMeta: {
-    fontSize: fontSizes.xs,
-    color: colors.light,
-    marginTop: 2,
+  primaryBadgeText: { fontSize: 10, fontWeight: '600', color: colors.primary },
+  bankName: { fontSize: fontSizes.sm, color: colors.textSecondary, marginTop: 2 },
+  accountMeta: { fontSize: fontSizes.xs, color: colors.textMuted, marginTop: 2 },
+  balanceText: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.lg,
+    fontWeight: '700',
+    marginTop: spacing.sm,
   },
   accountActions: {
     flexDirection: 'row',
@@ -334,21 +338,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.sm,
     borderWidth: 1,
-    borderColor: colors.teal,
+    borderColor: colors.primary,
   },
-  actionBtnText: {
-    fontSize: fontSizes.xs,
-    fontWeight: '600',
-    color: colors.teal,
-  },
-  actionBtnDanger: {
-    borderColor: colors.coral,
-  },
-  actionBtnTextDanger: {
-    fontSize: fontSizes.xs,
-    fontWeight: '600',
-    color: colors.coral,
-  },
+  actionBtnText: { fontSize: fontSizes.xs, fontWeight: '600', color: colors.primary },
+  actionBtnDanger: { borderColor: colors.error },
+  actionBtnTextDanger: { fontSize: fontSizes.xs, fontWeight: '600', color: colors.error },
+  disabledAction: { opacity: 0.5 },
   addAccountBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -360,20 +355,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderStyle: 'dashed',
   },
-  addAccountPlus: {
-    fontSize: 20,
-    color: colors.teal,
-    fontWeight: '300',
-  },
-  addAccountText: {
-    fontSize: fontSizes.md,
-    color: colors.teal,
-    fontWeight: '600',
-  },
+  addAccountPlus: { fontSize: 20, color: colors.primary, fontWeight: '300' },
+  addAccountText: { fontSize: fontSizes.md, color: colors.primary, fontWeight: '600' },
   infoCard: {
     marginHorizontal: spacing.xl,
     padding: spacing.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -381,12 +368,8 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: fontSizes.sm,
     fontWeight: '600',
-    color: colors.navy,
+    color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
-  infoText: {
-    fontSize: fontSizes.xs,
-    color: colors.mid,
-    lineHeight: 18,
-  },
+  infoText: { fontSize: fontSizes.xs, color: colors.textSecondary, lineHeight: 18 },
 });

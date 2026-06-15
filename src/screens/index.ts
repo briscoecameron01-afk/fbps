@@ -24,6 +24,7 @@ export { PaymentReceiptScreen } from './PaymentReceiptScreen';
 
 // Funding Tab
 export { FundingHubScreen } from './FundingHubScreen';
+export { ReadyToLaunchBankingScreen } from './ReadyToLaunchBankingScreen';
 export { LinkBankScreen } from './LinkBankScreen';
 export { BankListScreen } from './BankListScreen';
 export { BankDetailsScreen } from './BankDetailsScreen';
@@ -31,6 +32,7 @@ export { LinkedAccountsScreen } from './LinkedAccountsScreen';
 export { AutoTransferScheduleScreen } from './AutoTransferScheduleScreen';
 export { ContributionsSummaryScreen } from './ContributionsSummaryScreen';
 export { ManualContributionScreen } from './ManualContributionScreen';
+export { UnitTransferScreen } from './UnitTransferScreen';
 export { TransferHistoryScreen } from './TransferHistoryScreen';
 
 // Insights Tab

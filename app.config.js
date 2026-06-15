@@ -34,6 +34,18 @@ module.exports = {
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
+    web: {
+      favicon: './assets/favicon.png',
+      name: 'Fractional Bill Pay',
+      shortName: 'Fractional',
+      description: 'Track bills, connected banks, and contribution progress.',
+      themeColor: '#0A1628',
+      backgroundColor: '#0A1628',
+      display: 'standalone',
+      startUrl: '/',
+      scope: '/',
+      orientation: 'portrait',
+    },
     userInterfaceStyle: 'light',
     scheme: 'fractional',
     splash: {
@@ -47,6 +59,7 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
+        foregroundImage: './assets/icon.png',
         backgroundColor: '#0B2545',
       },
       package: 'com.fractionalbillpay.app',

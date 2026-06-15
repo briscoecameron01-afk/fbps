@@ -6,7 +6,7 @@ import { useStore } from '../hooks/useStore';
 const MENU_ITEMS = [
   { id: '1', label: 'My Profile', icon: '👤', screen: 'MyProfile' },
   { id: '2', label: 'Rewards', icon: '🏆', screen: 'Rewards' },
-  { id: '3', label: 'Subscription', icon: '👑', screen: 'Subscription' },
+  { id: '3', label: 'Pricing', icon: '%', screen: 'Subscription' },
   { id: '4', label: 'Notification', icon: '🔔', screen: 'NotificationSettings' },
   { id: '5', label: 'Security', icon: '🔒', screen: 'Security' },
   { id: '6', label: 'Settings', icon: '⚙️', screen: 'Settings' },
@@ -15,11 +15,14 @@ const MENU_ITEMS = [
 ];
 
 export function ProfileHubScreen({ navigation }: any) {
-  const { userProfile, userName } = useStore();
+  const { userProfile, userName, signOut } = useStore();
   const displayName = `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userName || userProfile.username;
 
   const handleMenuPress = (item: typeof MENU_ITEMS[0]) => {
-    if (item.screen === null) return;
+    if (item.screen === null) {
+      signOut();
+      return;
+    }
     navigation.navigate(item.screen);
   };
 

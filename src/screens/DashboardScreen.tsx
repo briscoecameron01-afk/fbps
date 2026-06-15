@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { colors, spacing, fontSizes, borderRadius } from '../theme';
-import { formatCurrency } from '../utils/calculations';
+import { formatCurrency, formatDate, getFundedPercent } from '../utils/calculations';
 import { useStore } from '../hooks/useStore';
 
 interface Props {
@@ -13,22 +13,54 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 export function DashboardScreen({ navigation }: Props) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
-  const { userProfile, userName } = useStore();
+  const { userProfile, userName, bills, buckets } = useStore();
 
   const currentMonth = MONTHS[selectedMonth];
   const currentYear = new Date().getFullYear();
   const displayName = `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userName || userProfile.username || 'User';
+  const activeBills = bills.filter((bill) => bill.isActive);
+  const billRows = activeBills.map((bill) => {
+    const bucket = buckets.find((item) => item.billId === bill.id);
+    const targetAmount = bucket?.targetAmount ?? bill.amount;
+    const currentAmount = bucket?.currentAmount ?? 0;
+    const remainingAmount = Math.max(targetAmount - currentAmount, 0);
+    const fundedPercent = getFundedPercent(currentAmount, targetAmount);
+    const formattedDueDate = bill.dueDate ? formatDate(bill.dueDate) : `Day ${bill.dueDay}`;
+    const status =
+      fundedPercent >= 100
+        ? 'Funded'
+        : fundedPercent >= 75
+          ? 'On Track'
+          : currentAmount > 0
+            ? 'Funding'
+            : 'Not Started';
 
-  const mockBills = [
-    { id: '1', name: 'Electricity', amount: 120, dueDate: 'Jul 10', status: 'On Track' as const },
-    { id: '2', name: 'Internet', amount: 79, dueDate: 'Jul 15', status: 'On Track' as const },
-    { id: '3', name: 'Insurance', amount: 150, dueDate: 'Jul 20', status: 'Behind' as const },
-  ];
+    return {
+      ...bill,
+      targetAmount,
+      currentAmount,
+      remainingAmount,
+      fundedPercent,
+      formattedDueDate,
+      status,
+    };
+  });
+
+  const totalTarget = billRows.reduce((sum, bill) => sum + bill.targetAmount, 0);
+  const totalFunded = billRows.reduce((sum, bill) => sum + bill.currentAmount, 0);
+  const totalRemaining = Math.max(totalTarget - totalFunded, 0);
+  const nextBill = [...billRows]
+    .filter((bill) => bill.remainingAmount > 0)
+    .sort((a, b) => {
+      if (a.dueDate && b.dueDate && a.dueDate !== b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      return a.dueDay - b.dueDay;
+    })[0];
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
@@ -36,17 +68,16 @@ export function DashboardScreen({ navigation }: Props) {
               <Text style={styles.name}>{displayName}</Text>
             </View>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>🔔</Text>
+              <Text style={styles.avatarText}>!</Text>
             </View>
           </View>
 
-          {/* Month Selector */}
           <TouchableOpacity
             style={styles.monthSelector}
             onPress={() => setShowMonthDropdown(!showMonthDropdown)}
           >
             <Text style={styles.monthText}>{currentMonth} {currentYear}</Text>
-            <Text style={styles.chevron}>▼</Text>
+            <Text style={styles.chevron}>v</Text>
           </TouchableOpacity>
 
           {showMonthDropdown && (
@@ -76,87 +107,102 @@ export function DashboardScreen({ navigation }: Props) {
             </View>
           )}
 
-          {/* Stats Row */}
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>Total Bills</Text>
-              <Text style={styles.statValue}>6</Text>
+              <Text style={styles.statValue}>{activeBills.length}</Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>Funded</Text>
-              <Text style={styles.statValue}>$420</Text>
+              <Text style={styles.statValue}>{formatCurrency(totalFunded, false)}</Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>Remaining</Text>
-              <Text style={styles.statValue}>$180</Text>
+              <Text style={styles.statValue}>{formatCurrency(totalRemaining, false)}</Text>
             </View>
           </View>
 
-          {/* Alert Banner */}
-          <View style={styles.alertBanner}>
-            <View style={styles.alertContent}>
-              <Text style={styles.alertTitle}>Next bill due in 3 days</Text>
-              <Text style={styles.alertDescription}>Electricity · $120 remaining</Text>
+          {!!nextBill && (
+            <View style={styles.alertBanner}>
+              <View style={styles.alertContent}>
+                <Text style={styles.alertTitle}>Next bill to fund</Text>
+                <Text style={styles.alertDescription}>
+                  {nextBill.name} - {formatCurrency(nextBill.remainingAmount)} remaining
+                </Text>
+              </View>
             </View>
-          </View>
+          )}
         </View>
 
-        {/* Your Bills Section */}
         <View style={styles.billsSection}>
           <Text style={styles.billsTitle}>Your Bills</Text>
 
-          {mockBills.map((bill) => (
-            <TouchableOpacity key={bill.id} style={styles.billCard} activeOpacity={0.7}>
-              <View style={styles.billCardContent}>
-                <View>
-                  <Text style={styles.billName}>{bill.name}</Text>
-                  <Text style={styles.billDueDate}>Due {bill.dueDate}</Text>
-                </View>
-                <View style={styles.billCardRight}>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      {
-                        backgroundColor:
-                          bill.status === 'On Track'
-                            ? colors.onTrack + '20'
-                            : colors.behind + '20',
-                      },
-                    ]}
-                  >
-                    <Text
+          {billRows.length === 0 ? (
+            <View style={styles.emptyBillsCard}>
+              <Text style={styles.emptyBillsTitle}>No bills yet</Text>
+              <Text style={styles.emptyBillsText}>Add your first bill to track funding progress here.</Text>
+            </View>
+          ) : (
+            billRows.map((bill) => (
+              <TouchableOpacity
+                key={bill.id}
+                style={styles.billCard}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('BillDetail', { billId: bill.id })}
+              >
+                <View style={styles.billCardContent}>
+                  <View style={styles.billCardLeft}>
+                    <Text style={styles.billName}>{bill.name}</Text>
+                    <Text style={styles.billDueDate}>Due {bill.formattedDueDate}</Text>
+                    <Text style={styles.billFundingText}>
+                      {formatCurrency(bill.currentAmount)} of {formatCurrency(bill.targetAmount)} funded
+                    </Text>
+                  </View>
+                  <View style={styles.billCardRight}>
+                    <Text style={styles.billAmount}>{formatCurrency(bill.remainingAmount)}</Text>
+                    <View
                       style={[
-                        styles.statusText,
+                        styles.statusBadge,
                         {
-                          color:
-                            bill.status === 'On Track'
-                              ? colors.onTrack
-                              : colors.behind,
+                          backgroundColor:
+                            bill.status === 'Funded' || bill.status === 'On Track'
+                              ? colors.primary + '20'
+                              : colors.warning + '20',
                         },
                       ]}
                     >
-                      {bill.status}
-                    </Text>
+                      <Text
+                        style={[
+                          styles.statusText,
+                          {
+                            color:
+                              bill.status === 'Funded' || bill.status === 'On Track'
+                                ? colors.primary
+                                : colors.warning,
+                          },
+                        ]}
+                      >
+                        {bill.status}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    {
-                      width:
-                        bill.status === 'On Track' ? '75%' : '40%',
-                      backgroundColor: colors.primary,
-                    },
-                  ]}
-                />
-              </View>
-            </TouchableOpacity>
-          ))}
+                <View style={styles.progressBarContainer}>
+                  <View
+                    style={[
+                      styles.progressBar,
+                      {
+                        width: `${bill.fundedPercent}%`,
+                        backgroundColor: colors.primary,
+                      },
+                    ]}
+                  />
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
-        {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={styles.outlineButton}
@@ -166,7 +212,7 @@ export function DashboardScreen({ navigation }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.outlineButton}
-            onPress={() => navigation.navigate('Contribution')}
+            onPress={() => navigation.navigate('ManualContribution')}
           >
             <Text style={styles.outlineButtonText}>Contribution</Text>
           </TouchableOpacity>
@@ -216,7 +262,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   avatarText: {
+    color: colors.primary,
     fontSize: 20,
+    fontWeight: '700',
   },
   monthSelector: {
     flexDirection: 'row',
@@ -318,6 +366,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: spacing.lg,
   },
+  emptyBillsCard: {
+    backgroundColor: colors.backgroundCard,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  emptyBillsTitle: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.md,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  emptyBillsText: {
+    color: colors.textSecondary,
+    fontSize: fontSizes.sm,
+    lineHeight: 20,
+  },
   billCard: {
     backgroundColor: colors.backgroundCard,
     borderRadius: borderRadius.md,
@@ -331,6 +397,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  billCardLeft: {
+    flex: 1,
   },
   billName: {
     color: colors.textPrimary,
@@ -342,8 +412,19 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSizes.sm,
   },
+  billFundingText: {
+    color: colors.textMuted,
+    fontSize: fontSizes.xs,
+    marginTop: spacing.xs,
+  },
   billCardRight: {
     alignItems: 'flex-end',
+  },
+  billAmount: {
+    color: colors.textPrimary,
+    fontSize: fontSizes.md,
+    fontWeight: '700',
+    marginBottom: spacing.sm,
   },
   statusBadge: {
     paddingHorizontal: spacing.md,

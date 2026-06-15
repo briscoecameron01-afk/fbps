@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '../../theme';
 import { useStore } from '../../hooks/useStore';
+import { BillCategory, CATEGORY_ICONS } from '../../types/bill';
 
 interface InitialBillSetupScreenProps {
   navigation: any;
@@ -18,6 +19,26 @@ interface InitialBillSetupScreenProps {
 }
 
 type BillType = 'recurring' | 'one-time' | null;
+
+const categoryMap: Record<string, BillCategory> = {
+  Electricity: 'utilities',
+  Water: 'utilities',
+  Internet: 'utilities',
+  Phone: 'utilities',
+  Insurance: 'insurance',
+  Rent: 'housing',
+  Mortgage: 'housing',
+  Gas: 'transport',
+  Car: 'car',
+  Streaming: 'subscriptions',
+  'Credit Card': 'loans',
+  Loan: 'loans',
+  Subscription: 'subscriptions',
+  Healthcare: 'other',
+  Childcare: 'other',
+  Education: 'other',
+  Other: 'other',
+};
 
 const billCategories = [
   'Electricity',
@@ -50,7 +71,7 @@ export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupSc
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { completeOnboarding } = useStore();
+  const { completeOnboarding, addBillAsync, syncFromSupabase } = useStore();
 
   const currencyOptions = ['USD', 'AED', 'EUR', 'GBP'];
   const dateOptions = Array.from({ length: 31 }, (_, index) => {
@@ -67,18 +88,48 @@ export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupSc
   });
 
   const handleContinue = async () => {
-    if (!billName || !amount || !dueDate || !category || !billType) {
+    if (!billName.trim() || !amount || !dueDate || !category || !billType) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    const parsedAmount = Number.parseFloat(amount);
+    const parsedDueDate = new Date(`${dueDate}T00:00:00`);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      Alert.alert('Error', 'Enter a valid amount greater than $0.');
+      return;
+    }
+    if (Number.isNaN(parsedDueDate.getTime())) {
+      Alert.alert('Error', 'Select a valid due date.');
       return;
     }
 
     setLoading(true);
     try {
-      // TODO: Implement bill setup logic
-      setTimeout(() => {
+      const mappedCategory = categoryMap[category] || 'other';
+      const result = await addBillAsync({
+        name: billName.trim(),
+        description: currency !== 'USD' ? `Entered currency: ${currency}` : undefined,
+        amount: parsedAmount,
+        dueDay: parsedDueDate.getDate(),
+        dueDate,
+        billType: billType === 'one-time' ? 'one_time' : 'recurring',
+        category: mappedCategory,
+        icon: CATEGORY_ICONS[mappedCategory],
+        isActive: true,
+        autoPay: true,
+        cadence: 'daily',
+      });
+
+      if (result.error) {
+        Alert.alert('Error', result.error);
         setLoading(false);
-        completeOnboarding();
-      }, 1500);
+        return;
+      }
+
+      await syncFromSupabase();
+      setLoading(false);
+      completeOnboarding();
     } catch (error) {
       setLoading(false);
       Alert.alert('Error', 'Failed to setup bill. Please try again.');
@@ -287,7 +338,7 @@ export function InitialBillSetupScreen({ navigation, route }: InitialBillSetupSc
           activeOpacity={0.8}
         >
           <Text style={styles.continueButtonText}>
-            {loading ? 'Setting Up...' : 'Continue'}
+            {loading ? 'Saving...' : 'Save'}
           </Text>
         </TouchableOpacity>
       </ScrollView>

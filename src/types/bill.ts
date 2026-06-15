@@ -69,6 +69,7 @@ export interface Bill {
   id: string;
   userId: string;
   name: string;
+  description?: string;
   amount: number;
   dueDay: number; // 1-31
   dueDate?: string; // ISO date
@@ -97,6 +98,7 @@ export interface Contribution {
   billId: string;
   bucketId: string;
   amount: number;
+  fundingSource?: string;
   status: 'pending' | 'completed' | 'failed';
   executedAt?: string;
   createdAt: string;

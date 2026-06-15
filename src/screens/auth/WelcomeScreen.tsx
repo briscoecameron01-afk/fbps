@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '../../theme';
+import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '@/theme';
 
 interface WelcomeScreenProps {
   navigation: any;

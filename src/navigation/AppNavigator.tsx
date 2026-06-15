@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text } from 'react-native';
 import { colors } from '@/theme';
 import { useStore } from '@/hooks/useStore';
+import { supabase } from '@/services/supabase';
 
 // Auth Screens
 import {
@@ -38,6 +39,7 @@ import {
   PaymentReviewScreen,
   PaymentReceiptScreen,
   FundingHubScreen,
+  ReadyToLaunchBankingScreen,
   LinkBankScreen,
   BankListScreen,
   BankDetailsScreen,
@@ -45,6 +47,7 @@ import {
   AutoTransferScheduleScreen,
   ContributionsSummaryScreen,
   ManualContributionScreen,
+  UnitTransferScreen,
   TransferHistoryScreen,
   InsightsScreen,
   ExportReportsScreen,
@@ -82,21 +85,24 @@ export type RootStackParamList = {
   ContributionFailed: undefined;
   BillsCalendar: undefined;
   AddBill: undefined;
-  FundingPreference: undefined;
+  EditBill: { billId: string };
+  FundingPreference: { billId?: string; billAmount?: number };
   BillConfirmation: undefined;
   BillDetail: { billId: string };
   BillBreakdown: { billId: string };
   DepositHistory: { billId: string };
   PayBill: { billId: string };
-  PaymentReview: { billId: string };
-  PaymentReceipt: { billId: string };
-  LinkBank: undefined;
+  PaymentReview: { billId: string; paymentMethod?: string; amount?: number };
+  PaymentReceipt: { billId: string; paymentMethod?: string; amount?: number };
+  ReadyToLaunchBanking: undefined;
+  LinkBank: { autoStart?: boolean; onboarding?: boolean } | undefined;
   BankList: undefined;
   BankDetails: undefined;
   LinkedAccounts: undefined;
   AutoTransferSchedule: undefined;
   ContributionsSummary: undefined;
   ManualContribution: undefined;
+  UnitTransfer: { linkedAccountId?: string; direction?: 'to_unit' | 'from_unit' } | undefined;
   TransferHistory: undefined;
   ExportReports: undefined;
   MyProfile: undefined;
@@ -145,6 +151,30 @@ function HomeStack() {
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="ContributionFailed" component={ContributionFailedScreen} />
+      <Stack.Screen
+        name="AddBill"
+        component={AddBillScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="EditBill"
+        component={AddBillScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen name="ManualContribution" component={ManualContributionScreen} />
+      <Stack.Screen
+        name="LinkBank"
+        component={LinkBankScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen name="LinkedAccounts" component={LinkedAccountsScreen} />
+      <Stack.Screen name="BillDetail" component={BillDetailScreen} />
+      <Stack.Screen name="BillBreakdown" component={BillBreakdownScreen} />
+      <Stack.Screen name="DepositHistory" component={DepositHistoryScreen} />
+      <Stack.Screen name="FundingPreference" component={FundingPreferenceScreen} />
+      <Stack.Screen name="PayBill" component={PayBillScreen} />
+      <Stack.Screen name="PaymentReview" component={PaymentReviewScreen} />
+      <Stack.Screen name="PaymentReceipt" component={PaymentReceiptScreen} />
     </Stack.Navigator>
   );
 }
@@ -164,6 +194,11 @@ function BillsStack() {
         component={AddBillScreen}
         options={{ presentation: 'modal' }}
       />
+      <Stack.Screen
+        name="EditBill"
+        component={AddBillScreen}
+        options={{ presentation: 'modal' }}
+      />
       <Stack.Screen name="FundingPreference" component={FundingPreferenceScreen} />
       <Stack.Screen name="BillConfirmation" component={BillConfirmationScreen} />
       <Stack.Screen name="BillDetail" component={BillDetailScreen} />
@@ -172,6 +207,13 @@ function BillsStack() {
       <Stack.Screen name="PayBill" component={PayBillScreen} />
       <Stack.Screen name="PaymentReview" component={PaymentReviewScreen} />
       <Stack.Screen name="PaymentReceipt" component={PaymentReceiptScreen} />
+      <Stack.Screen name="ManualContribution" component={ManualContributionScreen} />
+      <Stack.Screen
+        name="LinkBank"
+        component={LinkBankScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen name="LinkedAccounts" component={LinkedAccountsScreen} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
     </Stack.Navigator>
   );
@@ -186,6 +228,7 @@ function FundingStack() {
       }}
     >
       <Stack.Screen name="FundingHub" component={FundingHubScreen} />
+      <Stack.Screen name="ReadyToLaunchBanking" component={ReadyToLaunchBankingScreen} />
       <Stack.Screen
         name="LinkBank"
         component={LinkBankScreen}
@@ -197,6 +240,7 @@ function FundingStack() {
       <Stack.Screen name="AutoTransferSchedule" component={AutoTransferScheduleScreen} />
       <Stack.Screen name="ContributionsSummary" component={ContributionsSummaryScreen} />
       <Stack.Screen name="ManualContribution" component={ManualContributionScreen} />
+      <Stack.Screen name="UnitTransfer" component={UnitTransferScreen} />
       <Stack.Screen name="TransferHistory" component={TransferHistoryScreen} />
     </Stack.Navigator>
   );
@@ -231,6 +275,7 @@ function ProfileStack() {
       <Stack.Screen name="Subscription" component={SubscriptionScreen} />
       <Stack.Screen name="PlansComparison" component={PlansComparisonScreen} />
       <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+      <Stack.Screen name="LinkedAccounts" component={LinkedAccountsScreen} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
       <Stack.Screen name="Security" component={SecurityScreen} />
       <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
@@ -294,11 +339,34 @@ function MainTabs() {
 // Root Navigator
 export function AppNavigator() {
   const { isAuthenticated, hasCompletedOnboarding } = useStore();
+  const [passwordRecoveryActive, setPasswordRecoveryActive] = React.useState(() => {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname;
+    const params = `${window.location.search}${window.location.hash}`;
+    return path.includes('reset-password') || params.includes('type=recovery');
+  });
+
+  React.useEffect(() => {
+    if (!supabase?.auth?.onAuthStateChange) return undefined;
+
+    const { data } = supabase.auth.onAuthStateChange((event: string) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecoveryActive(true);
+      }
+      if (event === 'SIGNED_OUT') {
+        setPasswordRecoveryActive(false);
+      }
+    });
+
+    return () => data?.subscription?.unsubscribe?.();
+  }, []);
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
+        {passwordRecoveryActive ? (
+          <Stack.Screen name="SetNewPassword" component={SetNewPasswordScreen} />
+        ) : !isAuthenticated ? (
           <>
             <Stack.Screen name="Splash" component={SplashScreen} />
             <Stack.Screen name="Welcome" component={WelcomeScreen} />

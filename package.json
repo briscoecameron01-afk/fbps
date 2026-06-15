@@ -7,8 +7,11 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "web:phone": "expo start --web --host lan --clear",
     "web-plaid-sandbox": "expo start --web --clear",
-    "build:web": "expo export --platform web",
+    "deploy-to-vercel-prod": "npx vercel --prod",
+    "build:web": "expo export --platform web && node scripts/postprocess-web.js",
+    "unit:keys": "node scripts/generate-unit-jwt-keypair.js",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -39,6 +42,8 @@
     "react-native-svg": "~15.8.0",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "~0.19.13",
+    "supabase": "^2.101.0",
+    "vercel": "54.2.0",
     "zustand": "^5.0.0"
   },
   "devDependencies": {

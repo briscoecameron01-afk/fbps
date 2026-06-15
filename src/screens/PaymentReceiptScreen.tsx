@@ -3,6 +3,8 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView,
 } from 'react-native';
 import { colors, spacing, fontSizes, borderRadius, fontWeights } from '../theme';
+import { useStore } from '../hooks/useStore';
+import { formatCurrency } from '../utils/calculations';
 
 interface Props {
   navigation: any;
@@ -10,32 +12,35 @@ interface Props {
 }
 
 export function PaymentReceiptScreen({ navigation, route }: Props) {
-  // Mock data
-  const receipt = {
-    receiptId: 'FRAC-2026-001284',
-    timestamp: 'Jan 14, 2026 · 09:42 AM',
-  };
+  const { bills } = useStore();
+  const billId = route?.params?.billId;
+  const bill = bills.find((item) => item.id === billId);
+  const amount = Number(route?.params?.amount || bill?.amount || 0);
+  const paymentMethod = route?.params?.paymentMethod || 'Connected bank account';
+  const receiptId = `FRAC-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+  const timestamp = new Date().toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtn}>← Back</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('BillDetail', { billId })}>
+            <Text style={styles.backBtn}>Done</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Payment Receipt</Text>
           <View style={{ width: 24 }} />
         </View>
 
-        {/* Success Message */}
         <View style={styles.successSection}>
-          <Text style={styles.successMessage}>
-            Your payment was completed successfully
-          </Text>
+          <Text style={styles.successMessage}>Your payment was completed successfully</Text>
         </View>
 
-        {/* Checkmark and Success Text */}
         <View style={styles.checkmarkContainer}>
           <View style={styles.checkmarkCircle}>
             <Text style={styles.checkmark}>✓</Text>
@@ -43,27 +48,37 @@ export function PaymentReceiptScreen({ navigation, route }: Props) {
           <Text style={styles.successTitle}>Payment Successful</Text>
         </View>
 
-        {/* Receipt Details Card */}
         <View style={styles.receiptCard}>
           <View style={[styles.receiptRow, styles.receiptRowBorder]}>
+            <Text style={styles.receiptLabel}>Bill</Text>
+            <Text style={styles.receiptValue}>{bill?.name || 'Bill'}</Text>
+          </View>
+          <View style={[styles.receiptRow, styles.receiptRowBorder]}>
+            <Text style={styles.receiptLabel}>Amount</Text>
+            <Text style={styles.receiptValue}>{formatCurrency(amount)}</Text>
+          </View>
+          <View style={[styles.receiptRow, styles.receiptRowBorder]}>
+            <Text style={styles.receiptLabel}>Payment Method</Text>
+            <Text style={styles.receiptValue}>{paymentMethod}</Text>
+          </View>
+          <View style={[styles.receiptRow, styles.receiptRowBorder]}>
             <Text style={styles.receiptLabel}>Receipt ID</Text>
-            <Text style={styles.receiptValue}>{receipt.receiptId}</Text>
+            <Text style={styles.receiptValue}>{receiptId}</Text>
           </View>
           <View style={styles.receiptRow}>
             <Text style={styles.receiptLabel}>Timestamp</Text>
-            <Text style={styles.receiptValue}>{receipt.timestamp}</Text>
+            <Text style={styles.receiptValue}>{timestamp}</Text>
           </View>
         </View>
 
         <View style={{ flex: 1, minHeight: spacing['4xl'] }} />
 
-        {/* Action Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={[styles.primaryButton, styles.buttonMargin]}>
-            <Text style={styles.primaryButtonText}>Download</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.outlineButton, styles.buttonMargin]}>
-            <Text style={styles.outlineButtonText}>Share</Text>
+          <TouchableOpacity
+            style={[styles.primaryButton, styles.buttonMargin]}
+            onPress={() => navigation.navigate('BillDetail', { billId })}
+          >
+            <Text style={styles.primaryButtonText}>Back to Bill</Text>
           </TouchableOpacity>
         </View>
 
@@ -74,10 +89,7 @@ export function PaymentReceiptScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -87,49 +99,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backBtn: {
-    color: colors.primary,
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.semibold,
-  },
-  headerTitle: {
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
-    fontSize: fontSizes.lg,
-  },
-  successSection: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-  },
-  successMessage: {
-    fontSize: fontSizes.md,
-    color: colors.success,
-    textAlign: 'center',
-    fontWeight: fontWeights.semibold,
-  },
-  checkmarkContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing['2xl'],
-  },
+  backBtn: { color: colors.primary, fontSize: fontSizes.md, fontWeight: fontWeights.semibold },
+  headerTitle: { fontWeight: fontWeights.bold, color: colors.textPrimary, fontSize: fontSizes.lg },
+  successSection: { paddingHorizontal: spacing.xl, paddingVertical: spacing.xl },
+  successMessage: { fontSize: fontSizes.md, color: colors.success, textAlign: 'center', fontWeight: fontWeights.semibold },
+  checkmarkContainer: { alignItems: 'center', paddingVertical: spacing['2xl'] },
   checkmarkCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.successBg,
+    backgroundColor: colors.backgroundCardLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.success,
   },
-  checkmark: {
-    fontSize: fontSizes['4xl'],
-    color: colors.success,
-    fontWeight: fontWeights.bold,
-  },
-  successTitle: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
-  },
+  checkmark: { fontSize: fontSizes['4xl'], color: colors.success, fontWeight: fontWeights.bold },
+  successTitle: { fontSize: fontSizes.xl, fontWeight: fontWeights.bold, color: colors.textPrimary },
   receiptCard: {
     marginHorizontal: spacing.xl,
     backgroundColor: colors.backgroundCard,
@@ -138,31 +125,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  receiptRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-  },
-  receiptRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  receiptLabel: {
-    fontSize: fontSizes.sm,
-    color: colors.textSecondary,
-  },
-  receiptValue: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.textPrimary,
-  },
-  buttonContainer: {
-    paddingHorizontal: spacing.xl,
-  },
-  buttonMargin: {
-    marginBottom: spacing.md,
-  },
+  receiptRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md, gap: spacing.lg },
+  receiptRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
+  receiptLabel: { fontSize: fontSizes.sm, color: colors.textSecondary },
+  receiptValue: { flex: 1, fontSize: fontSizes.sm, fontWeight: fontWeights.semibold, color: colors.textPrimary, textAlign: 'right' },
+  buttonContainer: { paddingHorizontal: spacing.xl },
+  buttonMargin: { marginBottom: spacing.md },
   primaryButton: {
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
@@ -171,23 +139,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryButtonText: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.semibold,
-    color: colors.background,
-  },
-  outlineButton: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.md,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  outlineButtonText: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.semibold,
-    color: colors.textPrimary,
-  },
+  primaryButtonText: { fontSize: fontSizes.md, fontWeight: fontWeights.semibold, color: colors.background },
 });

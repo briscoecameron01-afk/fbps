@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -10,6 +10,11 @@ import {
   Alert,
 } from 'react-native';
 import { colors, spacing, fontSizes, fontWeights, borderRadius, screenPadding } from '../../theme';
+import {
+  clearPasswordRecoverySession,
+  getSession,
+  updatePassword,
+} from '../../services/auth';
 
 interface SetNewPasswordScreenProps {
   navigation: any;
@@ -21,6 +26,21 @@ export function SetNewPasswordScreen({ navigation }: SetNewPasswordScreenProps) 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [sessionError, setSessionError] = useState('');
+  const [passwordUpdated, setPasswordUpdated] = useState(false);
+
+  useEffect(() => {
+    const checkRecoverySession = async () => {
+      const result = await getSession();
+      if (result.error || !result.session?.user) {
+        setSessionError('This password reset link is invalid or has expired. Please request a new reset link.');
+      }
+      setCheckingSession(false);
+    };
+
+    checkRecoverySession();
+  }, []);
 
   const handleUpdatePassword = async () => {
     if (!password || !confirmPassword) {
@@ -40,21 +60,99 @@ export function SetNewPasswordScreen({ navigation }: SetNewPasswordScreenProps) 
 
     setLoading(true);
     try {
-      // TODO: Implement password update logic
-      setTimeout(() => {
+      const result = await updatePassword({ password });
+      if (result.error) {
         setLoading(false);
-        Alert.alert('Success', 'Password updated successfully', [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Login'),
-          },
-        ]);
-      }, 1500);
+        Alert.alert('Error', result.error);
+        return;
+      }
+
+      setLoading(false);
+      setPasswordUpdated(true);
     } catch (error) {
       setLoading(false);
       Alert.alert('Error', 'Failed to update password. Please try again.');
     }
   };
+
+  const returnToLogin = async () => {
+    await clearPasswordRecoverySession();
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      window.history.replaceState({}, '', '/');
+    }
+    navigation.reset?.({
+      index: 0,
+      routes: [{ name: 'Login' }],
+    }) || navigation.navigate('Login');
+  };
+
+  if (checkingSession) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.centerState}>
+          <Text style={styles.subtitle}>Checking reset link...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (sessionError) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.centerState}>
+          <Text style={styles.title}>Reset Link Expired</Text>
+          <Text style={styles.subtitle}>{sessionError}</Text>
+          <TouchableOpacity
+            style={styles.updateButton}
+            onPress={() => {
+              if (typeof window !== 'undefined' && window.history?.replaceState) {
+                window.history.replaceState({}, '', '/');
+              }
+              navigation.navigate('ForgotPassword');
+            }}
+          >
+            <Text style={styles.updateButtonText}>Request New Link</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => {
+              if (typeof window !== 'undefined' && window.history?.replaceState) {
+                window.history.replaceState({}, '', '/');
+              }
+              navigation.navigate('Login');
+            }}
+          >
+            <Text style={styles.secondaryButtonText}>Back to Login</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (passwordUpdated) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.centerState}>
+          <View style={styles.promptCard}>
+            <View style={styles.promptIcon}>
+              <Text style={styles.promptIconText}>✓</Text>
+            </View>
+            <Text style={styles.title}>Password Updated</Text>
+            <Text style={styles.subtitle}>
+              Your password was updated successfully. You can now log in with your new password.
+            </Text>
+            <TouchableOpacity
+              style={styles.updateButton}
+              onPress={returnToLogin}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.updateButtonText}>Back to Login</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -160,6 +258,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: screenPadding.horizontal,
     paddingVertical: screenPadding.vertical,
   },
+  centerState: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: screenPadding.horizontal,
+    gap: spacing.lg,
+  },
+  promptCard: {
+    backgroundColor: colors.backgroundCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  promptIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  promptIconText: {
+    color: colors.background,
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold as any,
+  },
   backButton: {
     width: 40,
     height: 40,
@@ -253,5 +378,18 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.semibold as any,
     color: colors.background,
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold as any,
+    color: colors.textPrimary,
   },
 });

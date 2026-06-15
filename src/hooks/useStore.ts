@@ -16,6 +16,8 @@ import {
 let supabase: any = null;
 let AuthService: any = null;
 let DatabaseServices: any = null;
+let HubSpotService: any = null;
+let PlaidService: any = null;
 
 try {
   supabase = require('../services/supabase').supabase;
@@ -45,6 +47,18 @@ try {
   // Database services not available yet
 }
 
+try {
+  HubSpotService = require('../services/hubspot');
+} catch (e) {
+  // HubSpot service not available yet
+}
+
+try {
+  PlaidService = require('../services/plaid');
+} catch (e) {
+  // Plaid service not available yet
+}
+
 // ── Type Definition ────────────────────────────────────────────
 type User = any; // from @supabase/supabase-js
 
@@ -55,6 +69,7 @@ const mapBill = (dbRow: any): Bill => ({
   id: dbRow.id,
   userId: dbRow.user_id,
   name: dbRow.name,
+  description: dbRow.description || undefined,
   amount: dbRow.amount,
   dueDay: dbRow.due_day,
   dueDate: dbRow.due_date,
@@ -83,26 +98,45 @@ const mapContribution = (dbRow: any): Contribution => ({
   billId: dbRow.bill_id,
   bucketId: dbRow.bucket_id,
   amount: dbRow.amount,
+  fundingSource: dbRow.funding_source || undefined,
   status: dbRow.status,
   executedAt: dbRow.executed_at,
   createdAt: dbRow.created_at,
 });
 
-const mapTransfer = (dbRow: any): Transfer => ({
-  id: dbRow.id,
-  billId: dbRow.bill_id,
-  billName: dbRow.bill_name,
-  amount: dbRow.amount,
-  date: dbRow.date,
-  status: dbRow.status,
-  fundingSource: dbRow.funding_source,
-});
+const mapTransferStatus = (status?: string): Transfer['status'] => {
+  const normalized = (status || '').toLowerCase();
+  if (normalized === 'sent' || normalized === 'completed' || normalized === 'success') return 'success';
+  if (['rejected', 'returned', 'canceled', 'cancelled', 'failed'].includes(normalized)) return 'failed';
+  return 'pending';
+};
+
+const mapTransfer = (dbRow: any): Transfer => {
+  const linkedAccount = dbRow.linked_accounts;
+  const accountMask = linkedAccount?.account_mask ? ` **** ${linkedAccount.account_mask}` : '';
+  const fundingSource = linkedAccount
+    ? `${linkedAccount.institution_name || 'Linked bank'} - ${linkedAccount.account_name || 'Account'}${accountMask}`
+    : dbRow.funding_source || 'Unit account';
+
+  return {
+    id: dbRow.id,
+    billId: dbRow.bill_id || '',
+    billName:
+      dbRow.bills?.name ||
+      dbRow.bill_name ||
+      (dbRow.direction === 'from_unit' ? 'Withdraw to bank' : 'Add money to Unit'),
+    amount: Number(dbRow.amount || 0),
+    date: dbRow.created_at || dbRow.date,
+    status: mapTransferStatus(dbRow.status),
+    fundingSource,
+  };
+};
 
 const mapLinkedAccount = (dbRow: any): LinkedAccount => ({
   id: dbRow.id,
-  bankName: dbRow.bank_name,
+  bankName: dbRow.bank_name || dbRow.institution_name || 'Unknown Bank',
   accountMask: dbRow.account_mask,
-  accountType: dbRow.account_type,
+  accountType: dbRow.account_subtype || dbRow.account_type,
   isPrimary: dbRow.is_primary,
   institutionId: dbRow.institution_id,
   createdAt: dbRow.created_at,
@@ -148,6 +182,46 @@ const mapProfile = (dbRow: any): UserProfile => {
 const getProfileDisplayName = (profile?: Partial<UserProfile> | null, fallback?: string) => {
   const fullName = `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim();
   return fullName || profile?.username || fallback || 'User';
+};
+
+const clearUnitReadyToLaunchSession = () => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem('unitCustomerToken');
+  window.localStorage.removeItem('unitVerifiedCustomerToken');
+};
+
+const syncHubSpotContactQuietly = async () => {
+  try {
+    await HubSpotService?.syncHubSpotContact?.();
+  } catch {
+    // HubSpot should never block the core app experience.
+  }
+};
+
+let lastLinkedAccountRefreshAt = 0;
+const refreshLinkedAccountsQuietly = async () => {
+  const now = Date.now();
+  if (now - lastLinkedAccountRefreshAt < 120000) return;
+  lastLinkedAccountRefreshAt = now;
+
+  try {
+    await PlaidService?.refreshLinkedAccountBalances?.();
+  } catch {
+    // Plaid refresh should not block login or local data sync.
+  }
+};
+
+const EMPTY_USER_PROFILE: UserProfile = {
+  id: '',
+  username: '',
+  firstName: '',
+  lastName: '',
+  email: '',
+  phoneNumber: '',
+  plan: 'freemium',
+  streakDays: 0,
+  employerLinked: false,
+  hasCompletedOnboarding: false,
 };
 
 // ── Mock Data ──────────────────────────────────────────
@@ -438,6 +512,7 @@ interface AppState {
   // Auth
   isAuthenticated: boolean;
   hasCompletedOnboarding: boolean;
+  hasLoadedUserData: boolean;
   userName: string;
   supabaseUser: User | null;
 
@@ -498,6 +573,7 @@ interface AppState {
   // ── Contribution Actions (sync + async) ────
   makeManualContribution: (billId: string, amount: number, source: string) => void;
   makeManualContributionAsync: (billId: string, amount: number, source: string) => Promise<{ error?: string }>;
+  markBillPaidAsync: (billId: string) => Promise<{ error?: string }>;
 
   // ── Settings Actions (sync + async) ────
   setPaySchedule: (cadence: Cadence) => void;
@@ -516,7 +592,7 @@ interface AppState {
   login: () => void;
   logout: () => void;
   completeOnboarding: () => void;
-  signUp: (email: string, password: string, username: string, firstName: string, lastName: string) => Promise<{ error?: string; needsEmailConfirmation?: boolean }>;
+  signUp: (email: string, password: string, username: string, firstName: string, lastName: string) => Promise<{ error?: string; errorCode?: string; errorStatus?: number; needsEmailConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
@@ -532,20 +608,21 @@ export const useStore = create<AppState>((set, get) => ({
   // Initial state - Auth
   isAuthenticated: false,
   hasCompletedOnboarding: false,
-  userName: 'Cam',
+  hasLoadedUserData: false,
+  userName: '',
   supabaseUser: null,
 
   // Initial state - Bills
-  bills: MOCK_BILLS,
-  buckets: MOCK_BUCKETS,
-  contributions: MOCK_CONTRIBUTIONS,
+  bills: [],
+  buckets: [],
+  contributions: [],
 
   // Initial state - User Profile & Accounts
-  userProfile: MOCK_USER_PROFILE,
-  linkedAccounts: MOCK_LINKED_ACCOUNTS,
-  transfers: MOCK_TRANSFERS,
-  notifications: MOCK_NOTIFICATIONS,
-  achievements: MOCK_ACHIEVEMENTS,
+  userProfile: EMPTY_USER_PROFILE,
+  linkedAccounts: [],
+  transfers: [],
+  notifications: [],
+  achievements: [],
 
   // Initial state - Settings
   autoTransferEnabled: true,
@@ -576,9 +653,12 @@ export const useStore = create<AppState>((set, get) => ({
       if (session?.user) {
         set({
           isAuthenticated: true,
+          hasLoadedUserData: false,
           supabaseUser: session.user,
         });
+        await refreshLinkedAccountsQuietly();
         await get().syncFromSupabase();
+        syncHubSpotContactQuietly();
       }
 
       set({ isLoading: false, isInitialized: true });
@@ -587,15 +667,24 @@ export const useStore = create<AppState>((set, get) => ({
       if (supabase.auth.onAuthStateChange) {
         supabase.auth.onAuthStateChange((event: string, session: any) => {
           if (event === 'SIGNED_OUT') {
+            clearUnitReadyToLaunchSession();
             set({
               isAuthenticated: false,
               hasCompletedOnboarding: false,
+              hasLoadedUserData: false,
               supabaseUser: null,
               authError: null,
             });
           } else if (event === 'SIGNED_IN' && session?.user) {
-            set({ isAuthenticated: true, supabaseUser: session.user });
-            get().syncFromSupabase();
+            set({
+              isAuthenticated: true,
+              hasLoadedUserData: false,
+              supabaseUser: session.user,
+              authError: null,
+            });
+            refreshLinkedAccountsQuietly()
+              .then(() => get().syncFromSupabase())
+              .finally(syncHubSpotContactQuietly);
           }
         });
       }
@@ -607,7 +696,10 @@ export const useStore = create<AppState>((set, get) => ({
   syncFromSupabase: async () => {
     try {
       if (!DatabaseServices) {
-        set({ dataError: 'Database services not available' });
+        set({
+          dataError: 'Database services not available',
+          hasLoadedUserData: get().isAuthenticated ? true : get().hasLoadedUserData,
+        });
         return;
       }
 
@@ -635,7 +727,10 @@ export const useStore = create<AppState>((set, get) => ({
         ]
       );
 
-      const updates: Partial<AppState> = {};
+      const updates: Partial<AppState> = {
+        hasLoadedUserData: get().isAuthenticated ? true : get().hasLoadedUserData,
+        dataError: null,
+      };
 
       if (profileRes.data) {
         const profile = mapProfile(profileRes.data);
@@ -646,17 +741,20 @@ export const useStore = create<AppState>((set, get) => ({
         updates.autoTransferEnabled = profileRes.data.auto_transfer_enabled ?? true;
         updates.autoTransferFrequency = profileRes.data.auto_transfer_frequency || 'daily';
       }
-      if (billsRes.data?.length) updates.bills = billsRes.data.map(mapBill);
-      if (bucketsRes.data?.length) updates.buckets = bucketsRes.data.map(mapBucket);
-      if (contributionsRes.data?.length) updates.contributions = contributionsRes.data.map(mapContribution);
-      if (accountsRes.data?.length) updates.linkedAccounts = accountsRes.data.map(mapLinkedAccount);
-      if (transfersRes.data?.length) updates.transfers = transfersRes.data.map(mapTransfer);
-      if (notificationsRes.data?.length) updates.notifications = notificationsRes.data.map(mapNotification);
-      if (achievementsRes.data?.length) updates.achievements = achievementsRes.data.map(mapAchievement);
+      if (Array.isArray(billsRes.data)) updates.bills = billsRes.data.map(mapBill);
+      if (Array.isArray(bucketsRes.data)) updates.buckets = bucketsRes.data.map(mapBucket);
+      if (Array.isArray(contributionsRes.data)) updates.contributions = contributionsRes.data.map(mapContribution);
+      if (Array.isArray(accountsRes.data)) updates.linkedAccounts = accountsRes.data.map(mapLinkedAccount);
+      if (Array.isArray(transfersRes.data)) updates.transfers = transfersRes.data.map(mapTransfer);
+      if (Array.isArray(notificationsRes.data)) updates.notifications = notificationsRes.data.map(mapNotification);
+      if (Array.isArray(achievementsRes.data)) updates.achievements = achievementsRes.data.map(mapAchievement);
 
       set(updates);
     } catch (err) {
-      set({ dataError: 'Failed to sync data from Supabase' });
+      set({
+        dataError: 'Failed to sync data from Supabase',
+        hasLoadedUserData: get().isAuthenticated ? true : get().hasLoadedUserData,
+      });
     }
   },
 
@@ -730,6 +828,15 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       if (!DatabaseServices?.BillService) {
         get().updateBill(id, updates);
+        if ('amount' in updates && typeof updates.amount === 'number') {
+          set((state) => ({
+            buckets: state.buckets.map((bucket) =>
+              bucket.billId === id && bucket.status !== 'paid'
+                ? { ...bucket, targetAmount: updates.amount as number }
+                : bucket
+            ),
+          }));
+        }
         set({ isLoading: false });
         return {};
       }
@@ -741,6 +848,15 @@ export const useStore = create<AppState>((set, get) => ({
       }
 
       get().updateBill(id, updates);
+      if ('amount' in updates && typeof updates.amount === 'number') {
+        set((state) => ({
+          buckets: state.buckets.map((bucket) =>
+            bucket.billId === id && bucket.status !== 'paid'
+              ? { ...bucket, targetAmount: updates.amount as number }
+              : bucket
+          ),
+        }));
+      }
       set({ isLoading: false });
       return {};
     } catch (err: any) {
@@ -957,6 +1073,7 @@ export const useStore = create<AppState>((set, get) => ({
       billId,
       bucketId: bucket.id,
       amount,
+      fundingSource: source,
       status: 'completed',
       executedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
@@ -1004,6 +1121,42 @@ export const useStore = create<AppState>((set, get) => ({
       return {};
     } catch (err: any) {
       const errMsg = err?.message || 'Failed to make contribution';
+      set({ isLoading: false, dataError: errMsg });
+      return { error: errMsg };
+    }
+  },
+
+  markBillPaidAsync: async (billId) => {
+    set({ isLoading: true, dataError: null });
+    try {
+      const bucket = get().buckets.find((item) => item.billId === billId);
+
+      if (DatabaseServices?.BucketService?.markBillPaid) {
+        const result = await DatabaseServices.BucketService.markBillPaid(billId);
+        if (result.error) {
+          set({ isLoading: false, dataError: result.error });
+          return { error: result.error };
+        }
+      }
+
+      set((state) => ({
+        isLoading: false,
+        buckets: state.buckets.map((item) =>
+          item.billId === billId
+            ? {
+                ...item,
+                currentAmount: item.targetAmount,
+                status: 'paid',
+                paidAt: new Date().toISOString(),
+              }
+            : item
+        ),
+      }));
+
+      if (!bucket) await get().syncFromSupabase();
+      return {};
+    } catch (err: any) {
+      const errMsg = err?.message || 'Failed to pay bill';
       set({ isLoading: false, dataError: errMsg });
       return { error: errMsg };
     }
@@ -1084,6 +1237,7 @@ export const useStore = create<AppState>((set, get) => ({
           userName: getProfileDisplayName({ ...state.userProfile, ...updates }, state.userName),
           isLoading: false,
         }));
+        syncHubSpotContactQuietly();
         return {};
       }
 
@@ -1098,6 +1252,7 @@ export const useStore = create<AppState>((set, get) => ({
         userName: getProfileDisplayName({ ...state.userProfile, ...updates }, state.userName),
         isLoading: false,
       }));
+      syncHubSpotContactQuietly();
       return {};
     } catch (err: any) {
       const errMsg = err?.message || 'Failed to update profile';
@@ -1136,16 +1291,29 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   // ── Auth Actions (Sync) ────────────────────────────────────────
-  login: () => set({ isAuthenticated: true }),
-  logout: () => set({ isAuthenticated: false, hasCompletedOnboarding: false }),
+  login: () => set({ isAuthenticated: true, hasLoadedUserData: true }),
+  logout: () => {
+    AuthService?.signOut?.();
+    clearUnitReadyToLaunchSession();
+    set({
+      isAuthenticated: false,
+      hasCompletedOnboarding: false,
+      hasLoadedUserData: false,
+      supabaseUser: null,
+      authError: null,
+      isLoading: false,
+    });
+  },
   completeOnboarding: () => {
     set((state) => ({
       hasCompletedOnboarding: true,
+      hasLoadedUserData: true,
       isAuthenticated: true,
       userProfile: { ...state.userProfile, hasCompletedOnboarding: true },
     }));
 
     DatabaseServices?.ProfileService?.updateProfile?.({ hasCompletedOnboarding: true });
+    syncHubSpotContactQuietly();
   },
 
   // ── Auth Actions (Async) ────────────────────────────────────────
@@ -1158,7 +1326,7 @@ export const useStore = create<AppState>((set, get) => ({
       }
 
       const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-      const { user, session, needsEmailConfirmation, error } = await AuthService.signUp({
+      const { user, session, needsEmailConfirmation, error, errorCode, errorStatus } = await AuthService.signUp({
         email,
         password,
         username,
@@ -1167,11 +1335,12 @@ export const useStore = create<AppState>((set, get) => ({
       });
       if (error) {
         set({ isLoading: false, authError: error });
-        return { error };
+        return { error, errorCode, errorStatus };
       }
 
       set({
         isAuthenticated: !!session,
+        hasLoadedUserData: !!session,
         supabaseUser: user,
         userName: fullName,
         userProfile: {
@@ -1184,6 +1353,7 @@ export const useStore = create<AppState>((set, get) => ({
         },
         isLoading: false,
       });
+      if (session) syncHubSpotContactQuietly();
       return { needsEmailConfirmation };
     } catch (err: any) {
       const errMsg = err?.message || 'Sign up failed';
@@ -1208,13 +1378,16 @@ export const useStore = create<AppState>((set, get) => ({
 
       set({
         isAuthenticated: true,
+        hasLoadedUserData: false,
         supabaseUser: user,
         userName: user?.user_metadata?.full_name || user?.user_metadata?.username || user?.email || get().userName,
-        isLoading: false,
       });
 
       // Load user data from Supabase
+      await refreshLinkedAccountsQuietly();
       await get().syncFromSupabase();
+      set({ isLoading: false });
+      syncHubSpotContactQuietly();
       return {};
     } catch (err: any) {
       const errMsg = err?.message || 'Sign in failed';
@@ -1230,9 +1403,11 @@ export const useStore = create<AppState>((set, get) => ({
         await AuthService.signOut();
       }
 
+      clearUnitReadyToLaunchSession();
       set({
         isAuthenticated: false,
         hasCompletedOnboarding: false,
+        hasLoadedUserData: false,
         supabaseUser: null,
         authError: null,
         isLoading: false,
@@ -1304,11 +1479,14 @@ export const useStore = create<AppState>((set, get) => ({
 
       set({
         isAuthenticated: true,
+        hasLoadedUserData: false,
         supabaseUser: user,
-        isLoading: false,
       });
 
+      await refreshLinkedAccountsQuietly();
       await get().syncFromSupabase();
+      set({ isLoading: false });
+      syncHubSpotContactQuietly();
       return {};
     } catch (err: any) {
       const errMsg = err?.message || 'OTP verification failed';
